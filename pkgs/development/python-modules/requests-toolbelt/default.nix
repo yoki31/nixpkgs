@@ -4,7 +4,7 @@
 , requests
 , betamax
 , mock
-, pytest
+, pytestCheckHook
 , pyopenssl
 }:
 
@@ -17,20 +17,22 @@ buildPythonPackage rec {
     sha256 = "968089d4584ad4ad7c171454f0a5c6dac23971e9472521ea3b6d49d610aa6fc0";
   };
 
-  checkInputs = [ pyopenssl betamax mock pytest ];
+  checkInputs = [ pyopenssl betamax mock pytestCheckHook ];
   propagatedBuildInputs = [ requests ];
 
-  checkPhase = ''
+  disabledTests = [
     # disabled tests access the network
-    py.test tests -k "not test_no_content_length_header \
-                  and not test_read_file \
-                  and not test_reads_file_from_url_wrapper"
-  '';
+    "test_no_content_length_header"
+    "test_read_file"
+    "test_reads_file_from_url_wrapper"
+    # sensitive to date
+    "test_x509"
+  ];
 
-  meta = {
+  meta = with lib; {
     description = "A toolbelt of useful classes and functions to be used with python-requests";
     homepage = "http://toolbelt.rtfd.org";
-    license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ matthiasbeyer ];
+    license = licenses.asl20;
+    maintainers = with maintainers; [ matthiasbeyer ];
   };
 }
