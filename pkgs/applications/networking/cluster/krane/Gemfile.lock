@@ -74,7 +74,7 @@ GEM
       oj (~> 3.0)
       statsd-instrument (>= 2.8, < 4)
       thor (>= 1.0, < 2.0)
-    kubeclient (4.9.2)
+    kubeclient (4.9.3)
       http (>= 3.0, < 5.0)
       jsonpath (~> 1.0)
       recursive-open-struct (~> 1.1, >= 1.1.1)
@@ -109,7 +109,7 @@ GEM
       concurrent-ruby (~> 1.0)
     unf (0.1.4)
       unf_ext
-    unf_ext (0.0.8)
+    unf_ext (0.0.8.1)
 
 PLATFORMS
   ruby
