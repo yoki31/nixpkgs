@@ -1371,7 +1371,7 @@ GEM
     xpath (3.2.0)
       nokogiri (~> 1.8)
     yajl-ruby (1.4.1)
-    yard (0.9.26)
+    yard (0.9.35)
     zeitwerk (2.5.3)
 
 PLATFORMS
