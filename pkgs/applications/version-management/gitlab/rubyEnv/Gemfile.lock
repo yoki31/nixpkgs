@@ -1007,7 +1007,7 @@ GEM
       optimist (>= 3.0.0)
     rbtree (0.4.4)
     rchardet (1.8.0)
-    rdoc (6.3.2)
+    rdoc (6.3.4.1)
     re2 (1.2.0)
     recaptcha (4.13.1)
       json
@@ -1584,7 +1584,7 @@ DEPENDENCIES
   rails-i18n (~> 6.0)
   rainbow (~> 3.0)
   rbtrace (~> 0.4)
-  rdoc (~> 6.3.2)
+  rdoc (~> 6.3.4)
   re2 (~> 1.2.0)
   recaptcha (~> 4.11)
   redis (~> 4.4.0)
