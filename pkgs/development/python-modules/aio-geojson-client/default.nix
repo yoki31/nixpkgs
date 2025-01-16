@@ -1,35 +1,47 @@
-{ lib
-, aiohttp
-, aresponses
-, asynctest
-, buildPythonPackage
-, fetchFromGitHub
-, geojson
-, haversine
-, pytest-asyncio
-, pytestCheckHook
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  geojson,
+  haversine,
+  mock,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "aio-geojson-client";
-  version = "0.15";
+  version = "0.21";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "exxamalte";
     repo = "python-aio-geojson-client";
-    rev = "v${version}";
-    sha256 = "0sbzrzmny7x4bkbg6z0cjn4d10r50nxdyaq7g6lagwd8ijpkg8l3";
+    tag = "v${version}";
+    hash = "sha256-zHgqsl278XBr2X8oQOsnIQxfyYuB5G8NLcTNy4oerUI=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "geojson" ];
+
+  __darwinAllowLocalNetworking = true;
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiohttp
     geojson
     haversine
   ];
 
-  checkInputs = [
-    aresponses
-    asynctest
+  nativeCheckInputs = [
+    aioresponses
+    mock
     pytest-asyncio
     pytestCheckHook
   ];
@@ -39,7 +51,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python module for accessing GeoJSON feeds";
     homepage = "https://github.com/exxamalte/python-aio-geojson-client";
-    license = with licenses; [ asl20 ];
+    changelog = "https://github.com/exxamalte/python-aio-geojson-client/blob/v${version}/CHANGELOG.md";
+    license = licenses.asl20;
     maintainers = with maintainers; [ fab ];
   };
 }

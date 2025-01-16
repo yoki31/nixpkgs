@@ -1,38 +1,58 @@
-{ stdenv
-, lib
-, fetchFromGitHub
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  kdeclarative,
+  plasma-framework,
+  plasma-workspace,
+  gitUpdater,
 }:
 
 stdenv.mkDerivation rec {
   pname = "graphite-kde-theme";
-  version = "unstable-2022-01-22";
+  version = "unstable-2023-10-25";
 
   src = fetchFromGitHub {
     owner = "vinceliuice";
     repo = pname;
-    rev = "d60a26533b104d6d2251c5187a402f3f35ecbdf7";
-    sha256 = "0cry5s3wr0frpchc0hx97r9v6r3v6rvln7l1hb3znn8npkr4mssi";
+    rev = "33cc85c49c424dfcba73e6ee84b0dc7fb9e52566";
+    hash = "sha256-iQGT2x0wY2EIuYw/a1MB8rT9BxiqWrOyBo6EGIJwsFw=";
   };
 
-  installPhase = ''
-    runHook preInstall
+  # Propagate sddm theme dependencies to user env otherwise sddm does
+  # not find them. Putting them in buildInputs is not enough.
+  propagatedUserEnvPkgs = [
+    kdeclarative.bin
+    plasma-framework
+    plasma-workspace
+  ];
 
+  postPatch = ''
     patchShebangs install.sh
 
     substituteInPlace install.sh \
       --replace '$HOME/.local' $out \
       --replace '$HOME/.config' $out/share
 
-    name= ./install.sh --dest $out/share/themes
+    substituteInPlace sddm/*/Main.qml \
+      --replace /usr $out
+  '';
+
+  installPhase = ''
+    runHook preInstall
+
+    name= ./install.sh
 
     mkdir -p $out/share/sddm/themes
-    cp -a sddm/Graphite $out/share/sddm/themes/
+    cp -a sddm/Graphite* $out/share/sddm/themes/
 
     runHook postInstall
   '';
 
+  passthru.updateScript = gitUpdater { };
+
   meta = with lib; {
-    description = "A flat Design theme for KDE Plasma desktop";
+    description = "Flat Design theme for KDE Plasma desktop";
     homepage = "https://github.com/vinceliuice/Graphite-kde-theme";
     license = licenses.gpl3Only;
     platforms = platforms.all;

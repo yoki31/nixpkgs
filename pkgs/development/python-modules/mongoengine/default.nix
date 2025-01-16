@@ -1,25 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pymongo
-, isPy27
-, six
-, blinker
-, nose
-, pillow
-, coverage
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pymongo,
+  isPy27,
+  six,
+  blinker,
+  pytestCheckHook,
+  pillow,
+  coverage,
 }:
 
 buildPythonPackage rec {
   pname = "mongoengine";
-  version = "0.23.1";
+  version = "0.29.1";
+  format = "setuptools";
   disabled = isPy27;
 
   src = fetchFromGitHub {
     owner = "MongoEngine";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "1lj33pgdrp4rvjzcg2glvz1f87np1pfnqhlwbdcijav9rxqc0w70";
+    tag = "v${version}";
+    hash = "sha256-trWCKmCa+q+qtzF0HKCZMnko1cvvpwJvczLFuKtB83E=";
   };
 
   propagatedBuildInputs = [
@@ -27,8 +29,8 @@ buildPythonPackage rec {
     six
   ];
 
-  checkInputs = [
-    nose
+  nativeCheckInputs = [
+    pytestCheckHook
     pillow
     coverage
     blinker
@@ -36,16 +38,19 @@ buildPythonPackage rec {
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "coverage==4.2" "coverage"
+      --replace "coverage==4.2" "coverage" \
+      --replace "pymongo>=3.4,<=4.0" "pymongo"
   '';
 
   # tests require mongodb running in background
   doCheck = false;
 
+  pythonImportsCheck = [ "mongoengine" ];
+
   meta = with lib; {
     description = "MongoEngine is a Python Object-Document Mapper for working with MongoDB";
     homepage = "http://mongoengine.org/";
     license = licenses.mit;
-    maintainers = [ maintainers.costrouc ];
+    maintainers = [ ];
   };
 }

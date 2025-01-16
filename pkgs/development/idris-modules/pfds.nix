@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, contrib
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  contrib,
+  lib,
 }:
-build-idris-package  {
-  name = "pfds";
+build-idris-package {
+  pname = "pfds";
   version = "2017-09-25";
 
   idrisDeps = [ contrib ];

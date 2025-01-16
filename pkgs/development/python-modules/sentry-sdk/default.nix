@@ -1,140 +1,205 @@
-{ lib
-, stdenv
-, aiohttp
-, asttokens
-, blinker
-, botocore
-, bottle
-, buildPythonPackage
-, celery
-, certifi
-, chalice
-, django
-, executing
-, fakeredis
-, falcon
-, fetchFromGitHub
-, flask_login
-, gevent
-, httpx
-, iana-etc
-, isPy3k
-, jsonschema
-, libredirect
-, pure-eval
-, pyramid
-, pyspark
-, pytest-django
-, pytest-forked
-, pytest-localserver
-, pytestCheckHook
-, rq
-, sanic
-, sanic-testing
-, sqlalchemy
-, tornado
-, trytond
-, urllib3
-, werkzeug
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  certifi,
+  urllib3,
+
+  # optional-dependencies
+  aiohttp,
+  anthropic,
+  asyncpg,
+  apache-beam,
+  bottle,
+  celery,
+  celery-redbeat,
+  chalice,
+  clickhouse-driver,
+  django,
+  falcon,
+  fastapi,
+  flask,
+  blinker,
+  markupsafe,
+  grpcio,
+  protobuf,
+  httpx,
+  huey,
+  huggingface-hub,
+  langchain,
+  loguru,
+  openai,
+  tiktoken,
+  pure-eval,
+  executing,
+  asttokens,
+  pymongo,
+  pyspark,
+  quart,
+  rq,
+  sanic,
+  sqlalchemy,
+  starlette,
+  tornado,
+
+  # checks
+  ipdb,
+  jsonschema,
+  pip,
+  pyrsistent,
+  pysocks,
+  pytest-asyncio,
+  pytestCheckHook,
+  pytest-forked,
+  pytest-localserver,
+  pytest-xdist,
+  pytest-watch,
+  responses,
 }:
 
 buildPythonPackage rec {
   pname = "sentry-sdk";
-  version = "1.5.4";
-  format = "setuptools";
+  version = "2.15.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "getsentry";
     repo = "sentry-python";
-    rev = version;
-    sha256 = "sha256-MZ1J2Stq+pRoeJ05hv8cSpxtaeRGaJEWAtidbr8YP88=";
+    tag = version;
+    hash = "sha256-jrApaDZ+R/bMOqOuQZguP9ySt6nKJeJYNpJTNTxq3no=";
   };
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    sed -i "/addopts =/d" pytest.ini
+  '';
+
+  build-system = [
+    setuptools
+  ];
+
+  dependencies = [
     certifi
     urllib3
   ];
 
-  checkInputs = [
-    asttokens
-    blinker
-    botocore
-    bottle
-    chalice
-    django
+  optional-dependencies = {
+    aiohttp = [ aiohttp ];
+    anthropic = [ anthropic ];
+    # TODO: arq
+    asyncpg = [ asyncpg ];
+    beam = [ apache-beam ];
+    bottle = [ bottle ];
+    celery = [ celery ];
+    celery-redbeat = [ celery-redbeat ];
+    chalice = [ chalice ];
+    clickhouse-driver = [ clickhouse-driver ];
+    django = [ django ];
+    falcon = [ falcon ];
+    fastapi = [ fastapi ];
+    flask = [
+      blinker
+      flask
+      markupsafe
+    ];
+    grpcio = [
+      grpcio
+      protobuf
+    ];
+    httpx = [ httpx ];
+    huey = [ huey ];
+    huggingface-hub = [ huggingface-hub ];
+    langchain = [ langchain ];
+    loguru = [ loguru ];
+    openai = [
+      openai
+      tiktoken
+    ];
+    # TODO: opentelemetry
+    # TODO: opentelemetry-experimental
+    pure_eval = [
+      asttokens
+      executing
+      pure-eval
+    ];
+    pymongo = [ pymongo ];
+    pyspark = [ pyspark ];
+    quart = [
+      blinker
+      quart
+    ];
+    rq = [ rq ];
+    sanic = [ sanic ];
+    sqlalchemy = [ sqlalchemy ];
+    starlette = [ starlette ];
+    # TODO: starlite
+    tornado = [ tornado ];
+  };
+
+  nativeCheckInputs = [
+    ipdb
+    pyrsistent
+    responses
+    pysocks
+    setuptools
     executing
-    fakeredis
-    falcon
-    flask_login
-    gevent
     jsonschema
-    pure-eval
-    pytest-django
+    pip
+    pytest-asyncio
     pytest-forked
     pytest-localserver
+    pytest-xdist
+    pytest-watch
     pytestCheckHook
-    rq
-    sqlalchemy
-    tornado
-    trytond
-    werkzeug
-  ] ++ lib.optionals isPy3k [
-    aiohttp
-    celery
-    httpx
-    pyramid
-    pyspark
-    sanic
-    sanic-testing
   ];
 
-  doCheck = !stdenv.isDarwin;
+  __darwinAllowLocalNetworking = true;
 
   disabledTests = [
-    # Issue with the asseration
-    "test_auto_enabling_integrations_catches_import_error"
-    # Output mismatch in sqlalchemy test
-    "test_too_large_event_truncated"
-    # Failing falcon tests
-    "test_has_context"
-    "uri_template-"
-    "path-"
-    "test_falcon_large_json_request"
-    "test_falcon_empty_json_request"
-    "test_falcon_raw_data_request"
-    # Failing spark tests
-    "test_set_app_properties"
-    "test_start_sentry_listener"
-    # Failing threading test
-    "test_circular_references"
-    # Failing wsgi test
-    "test_session_mode_defaults_to_request_mode_in_wsgi_handler"
-    # Network requests to public web
+    # depends on git revision
+    "test_default_release"
+    # tries to pip install old setuptools version
+    "test_error_has_existing_trace_context_performance_disabled"
+    "test_error_has_existing_trace_context_performance_enabled"
+    "test_error_has_new_trace_context_performance_disabled"
+    "test_error_has_new_trace_context_performance_enabled"
+    "test_traces_sampler_gets_correct_values_in_sampling_context"
+    "test_performance_error"
+    "test_performance_no_error"
+    "test_timeout_error"
+    "test_handled_exception"
+    "test_unhandled_exception"
+    # network access
+    "test_create_connection_trace"
     "test_crumb_capture"
+    "test_getaddrinfo_trace"
+    "test_omit_url_data_if_parsing_fails"
+    "test_span_origin"
+    # AttributeError: type object 'ABCMeta' has no attribute 'setup_once'
+    "test_ensure_integration_enabled_async_no_original_function_enabled"
+    "test_ensure_integration_enabled_no_original_function_enabled"
+    # sess = envelopes[1]
+    # IndexError: list index out of range
+    "test_session_mode_defaults_to_request_mode_in_wsgi_handler"
+    # assert count_item_types["sessions"] == 1
+    # assert 0 == 1
+    "test_auto_session_tracking_with_aggregates"
+    # timing sensitive
+    "test_profile_captured"
+    "test_continuous_profiler_manual_start_and_stop"
   ];
 
-  disabledTestPaths = [
-    # Some tests are failing (network access, assertion errors)
-    "tests/integrations/aiohttp/"
-    "tests/integrations/gcp/"
-    "tests/integrations/httpx/"
-    "tests/integrations/stdlib/test_httplib.py"
-    # Tests are blocking
-    "tests/integrations/celery/"
-    # pytest-chalice is not available in nixpkgs yet
-    "tests/integrations/chalice/"
-    # broken since rq-1.10.1: https://github.com/getsentry/sentry-python/issues/1274
-    "tests/integrations/rq/"
-  ];
-
-  pythonImportsCheck = [
-    "sentry_sdk"
-  ];
+  pythonImportsCheck = [ "sentry_sdk" ];
 
   meta = with lib; {
-    description = "Python SDK for Sentry.io";
+    description = "Official Python SDK for Sentry.io";
     homepage = "https://github.com/getsentry/sentry-python";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ fab gebner ];
+    changelog = "https://github.com/getsentry/sentry-python/blob/${src.rev}/CHANGELOG.md";
+    license = licenses.mit;
+    maintainers = with maintainers; [ hexa ];
   };
 }

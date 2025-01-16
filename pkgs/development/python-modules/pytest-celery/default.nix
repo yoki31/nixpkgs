@@ -1,21 +1,66 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  celery,
+  debugpy,
+  docker,
+  fetchFromGitHub,
+  poetry-core,
+  psutil,
+  pytest-cov-stub,
+  pytest-docker-tools,
+  pytest,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  tenacity,
+}:
 
 buildPythonPackage rec {
   pname = "pytest-celery";
-  version = "0.0.0";
+  version = "1.1.3";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "cfd060fc32676afa1e4f51b2938f903f7f75d952186b8c6cf631628c4088f406";
+  disabled = pythonOlder "3.8";
+
+  src = fetchFromGitHub {
+    owner = "celery";
+    repo = "pytest-celery";
+    tag = "v${version}";
+    hash = "sha256-TUtKfGOxvVkiMhsUqyNDK08OTuzzKHrBiPU4JCKsIKM=";
   };
 
-  patches = [ ./no-celery.patch ];
+  postPatch = ''
+    # Avoid infinite recursion with celery
+    substituteInPlace pyproject.toml \
+      --replace 'celery = { version = "*" }' ""
+  '';
 
-  doCheck = false; # This package has nothing to test or import.
+  pythonRelaxDeps = [
+    "debugpy"
+    "setuptools"
+  ];
+
+  build-system = [ poetry-core ];
+
+  buildInput = [ pytest ];
+
+  dependencies = [
+    debugpy
+    docker
+    psutil
+    pytest-docker-tools
+    setuptools
+    tenacity
+  ];
+
+  # Infinite recursion with celery
+  doCheck = false;
 
   meta = with lib; {
-    description = "pytest plugin for unittest subTest() support and subtests fixture";
-    homepage = "https://github.com/pytest-dev/pytest-subtests";
+    description = "Pytest plugin to enable celery.contrib.pytest";
+    homepage = "https://github.com/celery/pytest-celery";
+    changelog = "https://github.com/celery/pytest-celery/blob/v${version}/Changelog.rst";
     license = licenses.mit;
     maintainers = [ ];
   };

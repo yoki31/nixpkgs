@@ -1,22 +1,30 @@
-{ stdenv, lib, fetchFromGitHub, python3Packages }:
+{
+  lib,
+  fetchFromGitHub,
+  python3,
+}:
 
-python3Packages.buildPythonApplication rec {
+python3.pkgs.buildPythonApplication rec {
   pname = "openttd-nml";
-  version = "0.6.1";
+  version = "0.7.5";
 
   src = fetchFromGitHub {
     owner = "OpenTTD";
     repo = "nml";
-    rev = version;
-    sha256 = "0z0n4lqvnqigfjjhmmz7mvis7iivd4a8d287ya2yscfg5hznnqh2";
+    rev = "refs/tags/${version}";
+    hash = "sha256-OobTyPD7FtYMhJL3BDFXaZCOO2iPn8kjEw2OEdqQbr8=";
   };
 
-  propagatedBuildInputs = with python3Packages; [ply pillow];
+  propagatedBuildInputs = with python3.pkgs; [
+    pillow
+    ply
+  ];
 
   meta = with lib; {
+    homepage = "http://openttdcoop.org/";
     description = "Compiler for OpenTTD NML files";
-    homepage    = "http://openttdcoop.org/";
-    license     = licenses.gpl2;
+    mainProgram = "nmlc";
+    license = licenses.gpl2Plus;
     maintainers = with maintainers; [ ToxicFrog ];
   };
 }

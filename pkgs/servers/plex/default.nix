@@ -1,17 +1,24 @@
 # The actual Plex package that we run is a FHS userenv of the "raw" package.
-{ stdenv
-, buildFHSUserEnv
-, writeScript
-, plexRaw
+{
+  stdenv,
+  buildFHSEnv,
+  writeScript,
+  plexRaw,
 
-# Old argument for overriding the Plex data directory; not used for this
-# version of Plex, but still around for backwards-compatibility.
-, dataDir ? "/var/lib/plex"
+  # Old argument for overriding the Plex data directory; not used for this
+  # version of Plex, but still around for backwards-compatibility.
+  dataDir ? "/var/lib/plex",
 }:
 
-buildFHSUserEnv {
-  name = "plexmediaserver";
-  inherit (plexRaw) meta;
+buildFHSEnv {
+  pname = "plexmediaserver";
+
+  inherit (plexRaw) version meta;
+
+  # Plex does some magic to detect if it is already running.
+  # The separate PID namespace somehow breaks this and Plex is thinking it's already
+  # running and refuses to start.
+  unsharePid = false;
 
   # This script is run when we start our Plex binary
   runScript = writeScript "plex-run-script" ''
@@ -65,6 +72,7 @@ buildFHSUserEnv {
       # First, remove all of the symlinks in the plugins directory.
       while IFS= read -r -d $'\0' f; do
         echo "Removing plugin symlink: $f"
+        rm "$f"
       done < <(find "$pluginDir" -type l -print0)
 
       echo "Symlinking plugins"
@@ -94,6 +102,7 @@ buildFHSUserEnv {
         echo "Removing old symlinks"
         while IFS= read -r -d $'\0' f; do
           echo "Removing scanner symlink: $f"
+          rm "$f"
         done < <(find "$scannerDir" -type l -print0)
 
         echo "Symlinking scanners"

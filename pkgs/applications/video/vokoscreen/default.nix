@@ -1,6 +1,17 @@
-{ lib, fetchFromGitHub, mkDerivation
-, pkg-config, qtbase, qttools, qmake, qtmultimedia, qtx11extras, alsa-lib, libv4l, libXrandr
-, ffmpeg
+{
+  lib,
+  fetchFromGitHub,
+  mkDerivation,
+  pkg-config,
+  qtbase,
+  qttools,
+  qmake,
+  qtmultimedia,
+  qtx11extras,
+  alsa-lib,
+  libv4l,
+  libXrandr,
+  ffmpeg,
 }:
 
 mkDerivation rec {
@@ -9,13 +20,16 @@ mkDerivation rec {
   version = "2.5.8-beta";
 
   src = fetchFromGitHub {
-    owner   = "vkohaupt";
-    repo    = "vokoscreen";
-    rev     = version;
-    sha256  = "1a85vbsi53mhzva49smqwcs61c51wv3ic410nvb9is9nlsbifwan";
+    owner = "vkohaupt";
+    repo = "vokoscreen";
+    rev = version;
+    sha256 = "1a85vbsi53mhzva49smqwcs61c51wv3ic410nvb9is9nlsbifwan";
   };
 
-  nativeBuildInputs = [ pkg-config qmake ];
+  nativeBuildInputs = [
+    pkg-config
+    qmake
+  ];
   buildInputs = [
     alsa-lib
     libv4l
@@ -29,6 +43,10 @@ mkDerivation rec {
   patches = [
     ./ffmpeg-out-of-box.patch
   ];
+
+  # Workaround build failure on -fno-common toolchains:
+  #   ld: alsa_device.o:(.bss+0x8): multiple definition of `rc'; QvkAlsaDevice.o:(.bss+0x8): first defined here
+  env.NIX_CFLAGS_COMPILE = "-fcommon";
 
   preConfigure = ''
     sed -i 's/lrelease-qt5/lrelease/g' vokoscreen.pro
@@ -49,5 +67,6 @@ mkDerivation rec {
     license = licenses.gpl2Plus;
     maintainers = [ maintainers.league ];
     platforms = platforms.linux;
+    mainProgram = "vokoscreen";
   };
 }

@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, effects
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  effects,
+  lib,
 }:
-build-idris-package  {
-  name = "test";
+build-idris-package {
+  pname = "test";
   version = "2017-03-30";
 
   idrisDeps = [ effects ];

@@ -1,40 +1,57 @@
-{ lib, stdenv, fetchFromGitHub, ocaml, findlib }:
-stdenv.mkDerivation rec {
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  ocaml,
+  findlib,
+  version ? if lib.versionAtLeast ocaml.version "4.08" then "0.15.0" else "0.14.3",
+}:
+
+stdenv.mkDerivation (finalAttrs: {
   pname = "ocaml${ocaml.version}-ocamlbuild";
-  version = "0.14.0";
+  inherit version;
 
   src = fetchFromGitHub {
     owner = "ocaml";
     repo = "ocamlbuild";
-    rev = version;
-    sha256 = "1hb5mcdz4wv7sh1pj7dq9q4fgz5h3zg7frpiya6s8zd3ypwzq0kh";
+    rev = finalAttrs.version;
+    hash =
+      {
+        "0.14.3" = "sha256-dfcNu4ugOYu/M0rRQla7lXum/g1UzncdLGmpPYo0QUM=";
+        "0.15.0" = "sha256-j4Nd5flyvshIo+XFtBS0fKqdd9YcxYsjE7ty6rZLDRc=";
+      }
+      ."${finalAttrs.version}";
   };
 
   createFindlibDestdir = true;
 
-  nativeBuildInputs = [ ocaml findlib ];
+  nativeBuildInputs = [
+    ocaml
+    findlib
+  ];
   strictDeps = true;
 
   # x86_64-unknown-linux-musl-ld: -r and -pie may not be used together
   hardeningDisable = lib.optional stdenv.hostPlatform.isStatic "pie";
 
   configurePhase = ''
-  runHook preConfigure
+    runHook preConfigure
 
-  make -f configure.make Makefile.config \
-    "OCAMLBUILD_PREFIX=$out" \
-    "OCAMLBUILD_BINDIR=$out/bin" \
-    "OCAMLBUILD_MANDIR=$out/share/man" \
-    "OCAMLBUILD_LIBDIR=$OCAMLFIND_DESTDIR"
+    make -f configure.make Makefile.config \
+      "OCAMLBUILD_PREFIX=$out" \
+      "OCAMLBUILD_BINDIR=$out/bin" \
+      "OCAMLBUILD_MANDIR=$out/share/man" \
+      "OCAMLBUILD_LIBDIR=$OCAMLFIND_DESTDIR"
 
-  runHook postConfigure
+    runHook postConfigure
   '';
 
   meta = with lib; {
+    description = "Build system with builtin rules to easily build most OCaml projects";
     homepage = "https://github.com/ocaml/ocamlbuild/";
-    description = "A build system with builtin rules to easily build most OCaml projects";
     license = licenses.lgpl2;
-    inherit (ocaml.meta) platforms;
     maintainers = with maintainers; [ vbgl ];
+    mainProgram = "ocamlbuild";
+    inherit (ocaml.meta) platforms;
   };
-}
+})

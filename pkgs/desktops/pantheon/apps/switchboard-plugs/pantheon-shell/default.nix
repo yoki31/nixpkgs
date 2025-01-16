@@ -7,30 +7,30 @@
 , pkg-config
 , vala
 , glib
+, libadwaita
 , libgee
-, granite
+, granite7
 , gexiv2
 , gnome-settings-daemon
 , elementary-settings-daemon
-, gtk3
-, gnome-desktop
+, gtk4
 , gala
 , wingpanel
-, elementary-dock
+, wingpanel-indicator-keyboard
+, wingpanel-quick-settings
 , switchboard
 , gettext
-, bamf
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-pantheon-shell";
-  version = "6.1.0";
+  version = "8.1.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
     rev = version;
-    sha256 = "sha256-rwneQ1bqpWDyTHULMtGqhPdpSDa4ObnVortmL0E+gHA=";
+    sha256 = "sha256-S6EJGF9jRiCzH0f7WNrbLtAX23fjD/Hzd8YLEzkXesw=";
   };
 
   nativeBuildInputs = [
@@ -42,25 +42,23 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    bamf
-    elementary-dock
     elementary-settings-daemon
     gnome-settings-daemon
     gala
     gexiv2
     glib
-    gnome-desktop
-    granite
-    gtk3
+    granite7
+    gtk4
+    libadwaita
     libgee
     switchboard
     wingpanel
+    wingpanel-indicator-keyboard # gsettings schemas
+    wingpanel-quick-settings # gsettings schemas
   ];
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

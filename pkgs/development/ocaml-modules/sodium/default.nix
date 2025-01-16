@@ -1,32 +1,54 @@
-{ lib, stdenv, fetchFromGitHub, ocaml, findlib, ocamlbuild, ctypes, libsodium }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  ocaml,
+  findlib,
+  ocamlbuild,
+  ctypes,
+  libsodium,
+}:
 
-stdenv.mkDerivation rec {
-  pname = "ocaml${ocaml.version}-sodium";
-  version = "0.6.0";
+lib.throwIf (lib.versionAtLeast ocaml.version "5.0")
+  "sodium is not available for OCaml ${ocaml.version}"
 
-  src = fetchFromGitHub {
-    owner  = "dsheets";
-    repo   = "ocaml-sodium";
-    rev    = version;
-    sha256 = "124gpi1jhac46x05gp5viykyrafnlp03v1cmkl13c6pgcs8w04pv";
-  };
+  stdenv.mkDerivation
+  rec {
+    pname = "ocaml${ocaml.version}-sodium";
+    version = "0.6.0";
 
-  patches = [
-    # ctypes.stubs no longer pulls in bigarray automatically
-    ./lib-gen-link-bigarray.patch
-  ];
+    src = fetchFromGitHub {
+      owner = "dsheets";
+      repo = "ocaml-sodium";
+      rev = version;
+      sha256 = "124gpi1jhac46x05gp5viykyrafnlp03v1cmkl13c6pgcs8w04pv";
+    };
 
-  buildInputs = [ ocaml findlib ocamlbuild ];
-  propagatedBuildInputs = [ ctypes libsodium ];
+    patches = [
+      # ctypes.stubs no longer pulls in bigarray automatically
+      ./lib-gen-link-bigarray.patch
+    ];
 
-  createFindlibDestdir = true;
+    nativeBuildInputs = [
+      ocaml
+      findlib
+      ocamlbuild
+    ];
+    propagatedBuildInputs = [
+      ctypes
+      libsodium
+    ];
 
-  hardeningDisable = lib.optional stdenv.isDarwin "strictoverflow";
+    strictDeps = true;
 
-  meta = with lib; {
-    homepage = "https://github.com/dsheets/ocaml-sodium";
-    description = "Binding to libsodium 1.0.9+";
-    platforms = ocaml.meta.platforms or [];
-    maintainers = [ maintainers.rixed ];
-  };
-}
+    createFindlibDestdir = true;
+
+    hardeningDisable = lib.optional stdenv.hostPlatform.isDarwin "strictoverflow";
+
+    meta = with lib; {
+      homepage = "https://github.com/dsheets/ocaml-sodium";
+      description = "Binding to libsodium 1.0.9+";
+      inherit (ocaml.meta) platforms;
+      maintainers = [ maintainers.rixed ];
+    };
+  }

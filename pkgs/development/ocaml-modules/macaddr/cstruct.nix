@@ -1,19 +1,24 @@
-{ lib, buildDunePackage
-, macaddr, cstruct
+{
+  buildDunePackage,
+  macaddr,
+  cstruct,
 }:
 
 buildDunePackage {
   pname = "macaddr-cstruct";
 
-  inherit (macaddr) version src minimumOCamlVersion;
+  inherit (macaddr) version src;
 
-  useDune2 = true;
+  duneVersion = "3";
 
-  propagatedBuildInputs = [ macaddr cstruct ];
+  propagatedBuildInputs = [
+    macaddr
+    cstruct
+  ];
 
   doCheck = true;
 
   meta = macaddr.meta // {
-    description = "A library for manipulation of MAC address representations using Cstructs";
+    description = "Library for manipulation of MAC address representations using Cstructs";
   };
 }

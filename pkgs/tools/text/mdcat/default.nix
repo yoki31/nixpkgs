@@ -1,33 +1,47 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, pkg-config
-, asciidoctor
-, openssl
-, Security
-, ansi2html
-, installShellFiles
+{
+  lib,
+  curl,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  pkg-config,
+  asciidoctor,
+  openssl,
+  Security,
+  SystemConfiguration,
+  ansi2html,
+  installShellFiles,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "mdcat";
-  version = "0.25.1";
+  version = "2.7.1";
 
   src = fetchFromGitHub {
-    owner = "lunaryorn";
-    repo = pname;
+    owner = "swsnr";
+    repo = "mdcat";
     rev = "mdcat-${version}";
-    sha256 = "sha256-deG2VjyjFs0LFeTXfPYy3zzjj0rpVjxE0DhkpD5PzSQ=";
+    hash = "sha256-j6BFXx5cyjE3+fo1gGKlqpsxrm3i9HfQ9tJGNNjjLwo=";
   };
 
-  nativeBuildInputs = [ pkg-config asciidoctor installShellFiles ];
-  buildInputs = [ openssl ]
-    ++ lib.optional stdenv.isDarwin Security;
+  nativeBuildInputs = [
+    pkg-config
+    asciidoctor
+    installShellFiles
+  ];
+  buildInputs =
+    [
+      curl
+      openssl
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      Security
+      SystemConfiguration
+    ];
 
-  cargoSha256 = "sha256-bPGSdXooBZMye3yj00f3rWIiW4wfg2B4meH44hpkXTY=";
+  cargoHash = "sha256-TvGGu9mSKT5y4b2JuoUUxsK8J7W/bMa9MOe1y0Idy7g=";
 
-  checkInputs = [ ansi2html ];
+  nativeCheckInputs = [ ansi2html ];
   # Skip tests that use the network and that include files.
   checkFlags = [
     "--skip magic::tests::detect_mimetype_of_larger_than_magic_param_bytes_max_length"
@@ -40,17 +54,25 @@ rustPlatform.buildRustPackage rec {
     "--skip iterm2_tests_render_md_samples_images_md"
   ];
 
-  postInstall = ''
-    installManPage $releaseDir/build/mdcat-*/out/mdcat.1
-    installShellCompletion --bash $releaseDir/build/mdcat-*/out/completions/mdcat.bash
-    installShellCompletion --fish $releaseDir/build/mdcat-*/out/completions/mdcat.fish
-    installShellCompletion --zsh $releaseDir/build/mdcat-*/out/completions/_mdcat
-  '';
+  postInstall =
+    ''
+      installManPage $releaseDir/build/mdcat-*/out/mdcat.1
+      ln -sr $out/bin/{mdcat,mdless}
+    ''
+    + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+      for bin in mdcat mdless; do
+        installShellCompletion --cmd $bin \
+          --bash <($out/bin/$bin --completions bash) \
+          --fish <($out/bin/$bin --completions fish) \
+          --zsh <($out/bin/$bin --completions zsh)
+      done
+    '';
 
   meta = with lib; {
     description = "cat for markdown";
-    homepage = "https://github.com/lunaryorn/mdcat";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ davidtwco SuperSandro2000 ];
+    homepage = "https://github.com/swsnr/mdcat";
+    changelog = "https://github.com/swsnr/mdcat/releases/tag/mdcat-${version}";
+    license = with licenses; [ mpl20 ];
+    maintainers = with maintainers; [ SuperSandro2000 ];
   };
 }

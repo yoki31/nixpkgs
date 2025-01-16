@@ -1,36 +1,60 @@
-{ lib, stdenv, python, buildPythonPackage, pythonOlder, fetchPypi, isPy3k, incremental, ipaddress, twisted
-, automat, zope_interface, idna, pyopenssl, service-identity, pytest, mock, lsof
-, GeoIP}:
+{
+  lib,
+  stdenv,
+  automat,
+  buildPythonPackage,
+  cryptography,
+  fetchPypi,
+  geoip,
+  lsof,
+  mock,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  twisted,
+  zope-interface,
+}:
 
 buildPythonPackage rec {
   pname = "txtorcon";
-  version = "21.1.0";
+  version = "24.8.0";
+  pyproject = true;
 
-  checkInputs = [ pytest mock lsof GeoIP ];
-  propagatedBuildInputs = [
-    incremental twisted automat zope_interface
-    # extra dependencies required by twisted[tls]
-    idna pyopenssl service-identity
-  ] ++ lib.optionals (!isPy3k) [ ipaddress ];
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "aebf0b9ec6c69a029f6b61fd534e785692e28fdcd2fd003ce3cc132b9393b7d6";
+    hash = "sha256-vv4ZE42cjFMHtu5tT+RG0MIB/9HMQErrJl7ZAwmXitA=";
   };
 
-  # Based on what txtorcon tox.ini will automatically test, allow back as far
-  # as Python 3.5.
-  disabled = pythonOlder "3.5";
+  build-system = [ setuptools ];
 
-  doCheck = !(stdenv.isDarwin && stdenv.isAarch64);
-  checkPhase = ''
-    ${python.interpreter} -m twisted.trial -j $NIX_BUILD_CORES ./test
-  '';
+  dependencies = [
+    cryptography
+    twisted
+    automat
+    zope-interface
+  ] ++ twisted.optional-dependencies.tls;
 
-  meta = {
+  nativeCheckInputs = [
+    pytestCheckHook
+    mock
+    lsof
+    geoip
+  ];
+
+  doCheck = !(stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64);
+
+  pythonImportsCheck = [ "txtorcon" ];
+
+  meta = with lib; {
     description = "Twisted-based Tor controller client, with state-tracking and configuration abstractions";
     homepage = "https://github.com/meejah/txtorcon";
-    maintainers = with lib.maintainers; [ jluttine exarkun ];
-    license = lib.licenses.mit;
+    changelog = "https://github.com/meejah/txtorcon/releases/tag/v${version}";
+    maintainers = with maintainers; [
+      jluttine
+      exarkun
+    ];
+    license = licenses.mit;
   };
 }

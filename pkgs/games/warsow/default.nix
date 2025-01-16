@@ -1,4 +1,10 @@
-{ lib, stdenv, fetchurl, warsow-engine, makeWrapper }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  warsow-engine,
+  makeWrapper,
+}:
 
 stdenv.mkDerivation rec {
   pname = "warsow";
@@ -18,7 +24,7 @@ stdenv.mkDerivation rec {
 
     mkdir -p $out/bin
     for i in ${warsow-engine}/bin/*; do
-      makeWrapper "$i" "$out/bin/$(basename "$i")" --run "cd $out/share/warsow"
+      makeWrapper "$i" "$out/bin/$(basename "$i")" --chdir "$out/share/warsow"
     done
   '';
 
@@ -32,7 +38,10 @@ stdenv.mkDerivation rec {
     '';
     homepage = "http://www.warsow.net";
     license = licenses.unfreeRedistributable;
-    maintainers = with maintainers; [ astsmtl abbradar ];
+    maintainers = with maintainers; [
+      astsmtl
+      abbradar
+    ];
     platforms = warsow-engine.meta.platforms;
   };
 }

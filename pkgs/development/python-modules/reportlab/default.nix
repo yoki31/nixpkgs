@@ -1,26 +1,33 @@
-{ buildPythonPackage
-, fetchPypi
-, freetype
-, pillow
-, glibcLocales
-, python
-, isPyPy
+{
+  lib,
+  buildPythonPackage,
+  chardet,
+  fetchPypi,
+  freetype,
+  pillow,
+  setuptools,
+  glibcLocales,
+  python,
+  isPyPy,
 }:
 
 let
-  ft = freetype.overrideAttrs (oldArgs: { dontDisableStatic = true; });
-in buildPythonPackage rec {
+  ft = freetype.overrideAttrs (oldArgs: {
+    dontDisableStatic = true;
+  });
+in
+buildPythonPackage rec {
   pname = "reportlab";
-  version = "3.6.3";
+  version = "4.2.5";
+  pyproject = true;
+
+  # See https://bitbucket.org/pypy/compatibility/wiki/reportlab%20toolkit
+  disabled = isPyPy;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "be4f05230eb17b9c9c61a180ab0c89c30112da2823c77807a2a5ddba19365865";
+    hash = "sha256-XPNbj9YJtoCArHu7CuHjdhBPfV97LTkUx63GPyWTlB8=";
   };
-
-  checkInputs = [ glibcLocales ];
-
-  buildInputs = [ ft pillow ];
 
   postPatch = ''
     # Remove all the test files that require access to the internet to pass.
@@ -33,16 +40,29 @@ in buildPythonPackage rec {
     rm tests/test_graphics_charts.py
   '';
 
+  nativeBuildInputs = [ setuptools ];
+
+  buildInputs = [ ft ];
+
+  propagatedBuildInputs = [
+    chardet
+    pillow
+  ];
+
+  nativeCheckInputs = [ glibcLocales ];
+
   checkPhase = ''
-    cd tests
+    runHook preCheck
+    pushd tests
     LC_ALL="en_US.UTF-8" ${python.interpreter} runAll.py
+    popd
+    runHook postCheck
   '';
 
-  # See https://bitbucket.org/pypy/compatibility/wiki/reportlab%20toolkit
-  disabled = isPyPy;
-
-  meta = {
-    description = "An Open Source Python library for generating PDFs and graphics";
-    homepage = "http://www.reportlab.com/";
+  meta = with lib; {
+    description = "Open Source Python library for generating PDFs and graphics";
+    homepage = "https://www.reportlab.com/";
+    license = licenses.bsd3;
+    maintainers = [ ];
   };
 }

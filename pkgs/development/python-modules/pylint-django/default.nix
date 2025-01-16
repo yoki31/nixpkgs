@@ -1,52 +1,61 @@
-{ lib
-, buildPythonPackage
-, coverage
-, django
-, factory_boy
-, fetchFromGitHub
-, isPy3k
-, pylint-plugin-utils
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  django,
+  django-tables2,
+  django-tastypie,
+  factory-boy,
+  fetchFromGitHub,
+  poetry-core,
+  pylint-plugin-utils,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "pylint-django";
-  version = "2.4.4";
-  disabled = !isPy3k;
+  version = "2.6.1";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "PyCQA";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-bFcb5GhC7jc7jEpNlyjWa2CuCSMvQLJdnag+7mHwSb8=";
+    repo = "pylint-django";
+    tag = "v${version}";
+    hash = "sha256-9b0Sbo6E036UmUmP/CVPrS9cxxKtkMMZtqJsI53g4sU=";
   };
 
-  propagatedBuildInputs = [
-    django
-    pylint-plugin-utils
-  ];
+  build-system = [ poetry-core ];
 
-  checkInputs = [
-    coverage
-    factory_boy
+  dependencies = [ pylint-plugin-utils ];
+
+  optional-dependencies = {
+    with_django = [ django ];
+  };
+
+  nativeCheckInputs = [
+    django-tables2
+    django-tastypie
+    factory-boy
     pytestCheckHook
   ];
 
   disabledTests = [
-    # Skip outdated tests and the one with a missing dependency (django_tables2)
-    "external_django_tables2_noerror_meta_class"
-    "external_factory_boy_noerror"
-    "func_noerror_foreign_key_attributes"
-    "func_noerror_foreign_key_key_cls_unbound"
+    # AttributeError: module 'pylint.interfaces' has no attribute 'IAstroidChecker'
+    "test_migrations_plugin"
+    "func_noerror_model_unicode_lambda"
+    "test_linter_should_be_pickleable_with_pylint_django_plugin_installed"
+    "func_noerror_model_fields"
+    "func_noerror_form_fields"
   ];
 
-  pythonImportsCheck = [
-    "pylint_django"
-  ];
+  pythonImportsCheck = [ "pylint_django" ];
 
   meta = with lib; {
     description = "Pylint plugin to analyze Django applications";
     homepage = "https://github.com/PyCQA/pylint-django";
+    changelog = "https://github.com/pylint-dev/pylint-django/releases/tag/v${version}";
     license = licenses.gpl2Plus;
     maintainers = with maintainers; [ kamadorueda ];
   };

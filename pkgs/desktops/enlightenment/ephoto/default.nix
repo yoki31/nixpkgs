@@ -1,10 +1,12 @@
-{ lib
-, stdenv
-, fetchurl
-, meson
-, ninja
-, pkg-config
-, efl
+{
+  lib,
+  stdenv,
+  fetchurl,
+  meson,
+  ninja,
+  pkg-config,
+  efl,
+  directoryListingUpdater,
 }:
 
 stdenv.mkDerivation rec {
@@ -26,11 +28,14 @@ stdenv.mkDerivation rec {
     efl
   ];
 
+  passthru.updateScript = directoryListingUpdater { };
+
   meta = with lib; {
     description = "Image viewer and editor written using the Enlightenment Foundation Libraries";
+    mainProgram = "ephoto";
     homepage = "https://www.smhouston.us/ephoto/";
     license = licenses.bsd2;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ romildo ];
+    maintainers = teams.enlightenment.members;
   };
 }

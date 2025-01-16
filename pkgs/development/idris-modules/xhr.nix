@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, idrisscript
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  idrisscript,
+  lib,
 }:
-build-idris-package  {
-  name = "xhr";
+build-idris-package {
+  pname = "xhr";
   version = "2017-04-22";
 
   idrisDeps = [ idrisscript ];

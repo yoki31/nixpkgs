@@ -1,38 +1,52 @@
-{ lib
-, mkDerivation
-, fetchFromGitHub
-, fetchurl
-, qmake
-, qttools
-, zlib
+{
+  lib,
+  mkDerivation,
+  fetchFromGitHub,
+  fetchurl,
+  povray,
+  qmake,
+  qttools,
+  replaceVars,
+  zlib,
 }:
 
 /*
-To use aditional parts libraries
-set the variable LEOCAD_LIB=/path/to/libs/ or use option -l /path/to/libs/
+  To use aditional parts libraries
+  set the variable LEOCAD_LIB=/path/to/libs/ or use option -l /path/to/libs/
 */
 
 let
   parts = fetchurl {
-    url = "https://web.archive.org/web/20190715142541/https://www.ldraw.org/library/updates/complete.zip";
+    url = "https://web.archive.org/web/20210705153544/https://www.ldraw.org/library/updates/complete.zip";
     sha256 = "sha256-PW3XCbFwRaNkx4EgCnl2rXH7QgmpNgjTi17kZ5bladA=";
   };
 
 in
 mkDerivation rec {
   pname = "leocad";
-  version = "21.03";
+  version = "21.06";
 
   src = fetchFromGitHub {
     owner = "leozide";
     repo = "leocad";
     rev = "v${version}";
-    sha256 = "sha256-69Ocfk5dBXwcRqAZWEP9Xg41o/tAQo76dIOk9oYhCUE=";
+    sha256 = "1ifbxngkbmg6d8vv08amxbnfvlyjdwzykrjp98lbwvgb0b843ygq";
   };
 
-  nativeBuildInputs = [ qmake qttools ];
+  nativeBuildInputs = [
+    qmake
+    qttools
+  ];
 
   buildInputs = [ zlib ];
+
+  propagatedBuildInputs = [ povray ];
+
+  patches = [
+    (replaceVars ./povray.patch {
+      inherit povray;
+    })
+  ];
 
   qmakeFlags = [
     "INSTALL_PREFIX=${placeholder "out"}"
@@ -45,6 +59,7 @@ mkDerivation rec {
 
   meta = with lib; {
     description = "CAD program for creating virtual LEGO models";
+    mainProgram = "leocad";
     homepage = "https://www.leocad.org/";
     license = licenses.gpl2Only;
     maintainers = with maintainers; [ peterhoeg ];

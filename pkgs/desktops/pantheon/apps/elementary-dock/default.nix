@@ -1,79 +1,66 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, vala
-, atk
-, cairo
-, dconf
-, glib
-, gtk3
-, libwnck
-, libX11
-, libXfixes
-, libXi
-, pango
-, gettext
-, pkg-config
-, libxml2
-, bamf
-, gdk-pixbuf
-, libdbusmenu-gtk3
-, gnome-menus
-, libgee
-, wrapGAppsHook
-, meson
-, ninja
-, granite
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  wayland-scanner,
+  wrapGAppsHook4,
+  glib,
+  granite7,
+  gtk4,
+  libadwaita,
+  wayland,
+  nix-update-script,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "elementary-dock";
-  version = "unstable-2021-12-08";
+  version = "8.0.2";
 
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+  ];
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "dock";
-    rev = "5e4b5ba2eec3b522e107ad834a59c0f1271d4699";
-    sha256 = "sha256-/Ul21t9VFxhmlQbfx4eY86UKU33hiRfXF9OPHBzPe5o=";
+    rev = finalAttrs.version;
+    hash = "sha256-bixNYpPdWU2FndiCPX7SxNTz2MEttRuj35NaWn3GJrI=";
   };
 
+  depsBuildBuild = [ pkg-config ];
+
   nativeBuildInputs = [
-    gettext
     meson
     ninja
-    libxml2 # xmllint
     pkg-config
     vala
-    wrapGAppsHook
+    wayland-scanner
+    wrapGAppsHook4
   ];
 
   buildInputs = [
-    atk
-    bamf
-    cairo
-    gdk-pixbuf
     glib
-    gnome-menus
-    dconf
-    granite
-    gtk3
-    libX11
-    libXfixes
-    libXi
-    libdbusmenu-gtk3
-    libgee
-    libwnck
-    pango
+    granite7
+    gtk4
+    libadwaita
+    wayland
   ];
 
-  meta = with lib; {
+  passthru = {
+    updateScript = nix-update-script { };
+  };
+
+  meta = {
     description = "Elegant, simple, clean dock";
     homepage = "https://github.com/elementary/dock";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ davidak ] ++ teams.pantheon.members;
-    mainProgram = "plank";
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    maintainers = lib.teams.pantheon.members;
+    mainProgram = "io.elementary.dock";
   };
-}
+})

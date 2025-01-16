@@ -1,6 +1,15 @@
-{ lib, gccStdenv, fetchFromGitHub, cmake, pkg-config, pcre, zlib, sqlite }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  pkg-config,
+  pcre,
+  zlib,
+  sqlite,
+}:
 
-gccStdenv.mkDerivation {
+stdenv.mkDerivation {
   pname = "falcon";
   version = "unstable-2018-10-23";
 
@@ -13,10 +22,17 @@ gccStdenv.mkDerivation {
 
   # -Wnarrowing is enabled by default in recent GCC versions,
   # causing compilation to fail.
-  NIX_CFLAGS_COMPILE = "-Wno-narrowing";
+  env.NIX_CFLAGS_COMPILE = "-Wno-narrowing";
 
-  nativeBuildInputs = [ cmake pkg-config ];
-  buildInputs = [ pcre zlib sqlite ];
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+  ];
+  buildInputs = [
+    pcre
+    zlib
+    sqlite
+  ];
 
   meta = with lib; {
     description = "Programming language with macros and syntax at once";

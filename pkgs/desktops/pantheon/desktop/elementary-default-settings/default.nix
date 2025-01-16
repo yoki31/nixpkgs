@@ -10,52 +10,36 @@
 , dbus
 , polkit
 , accountsservice
-, python3
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-default-settings";
-  version = "6.0.2";
+  version = "8.0.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "default-settings";
     rev = version;
-    sha256 = "sha256-qaPj/Qp7RYzHgElFdM8bHV42oiPUbCMTC9Q+MUj4Q6Y=";
+    sha256 = "sha256-vytjRlSXnC+cSIAn6v6wpoig4zjJZObGZ6MCLfsIwIA=";
   };
 
   nativeBuildInputs = [
-    accountsservice
-    dbus
-    glib # polkit requires
+    glib # glib-compile-schemas
     meson
     ninja
     pkg-config
+  ];
+
+  buildInputs = [
+    accountsservice
+    dbus
     polkit
-    python3
   ];
 
   mesonFlags = [
     "--sysconfdir=${placeholder "out"}/etc"
     "-Ddefault-wallpaper=${nixos-artwork.wallpapers.simple-dark-gray.gnomeFilePath}"
-    "-Dplank-dockitems=false"
   ];
-
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
-  '';
-
-  preInstall = ''
-    # Install our override for plank dockitems as Appcenter is not ready to be preinstalled.
-    # See: https://github.com/NixOS/nixpkgs/issues/70214.
-    schema_dir=$out/share/glib-2.0/schemas
-    install -D ${./overrides/plank-dockitems.gschema.override} $schema_dir/plank-dockitems.gschema.override
-
-    # Our launchers that use paths at /run/current-system/sw/bin
-    mkdir -p $out/etc/skel/.config/plank/dock1
-    cp -avr ${./launchers} $out/etc/skel/.config/plank/dock1/launchers
-  '';
 
   postFixup = ''
     # https://github.com/elementary/default-settings/issues/55
@@ -64,9 +48,7 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

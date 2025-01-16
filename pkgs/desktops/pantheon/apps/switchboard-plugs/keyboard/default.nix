@@ -7,12 +7,13 @@
 , ninja
 , pkg-config
 , vala
+, libadwaita
 , libgee
+, gettext
 , gnome-settings-daemon
-, granite
+, granite7
 , gsettings-desktop-schemas
-, gtk3
-, libhandy
+, gtk4
 , libxml2
 , libgnomekbd
 , libxklavier
@@ -23,24 +24,28 @@
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-keyboard";
-  version = "2.6.0";
+  version = "8.0.1";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
     rev = version;
-    sha256 = "sha256-Bl0T+8upTdBnLs03UIimcAg0LO40KwuMZRNSM+y/3Hc=";
+    sha256 = "sha256-/jfUftlNL+B4570ajropS7/2fqro380kZzpPwm+A9fA=";
   };
 
   patches = [
-    ./0001-Remove-Install-Unlisted-Engines-function.patch
+    # This will try to install packages with apt.
+    # https://github.com/elementary/switchboard-plug-keyboard/issues/324
+    ./hide-install-unlisted-engines-button.patch
+
     (substituteAll {
       src = ./fix-paths.patch;
-      inherit ibus onboard;
+      inherit onboard libgnomekbd;
     })
   ];
 
   nativeBuildInputs = [
+    gettext # msgfmt
     libxml2
     meson
     ninja
@@ -50,21 +55,18 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     gnome-settings-daemon # media-keys
-    granite
+    granite7
     gsettings-desktop-schemas
-    gtk3
+    gtk4
     ibus
+    libadwaita
     libgee
-    libgnomekbd
-    libhandy
     libxklavier
     switchboard
   ];
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

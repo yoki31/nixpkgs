@@ -1,45 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, elementpath
-, lxml
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  elementpath,
+  fetchFromGitHub,
+  jinja2,
+  lxml,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
-  version = "1.9.2";
   pname = "xmlschema";
+  version = "3.4.3";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "sissaschool";
     repo = "xmlschema";
-    rev = "v${version}";
-    sha256 = "1d18x150g0jz3nw5al5dygizwkjgzdnmd5kf46v8ribfz48iirr6";
+    tag = "v${version}";
+    hash = "sha256-7RA9lQwuty8aZghwTKNbU+oL+BATH2FVIRQBe9fIpHI=";
   };
 
-  propagatedBuildInputs = [
-    elementpath
-  ];
+  build-system = [ setuptools ];
 
-  checkInputs = [
+  dependencies = [ elementpath ];
+
+  nativeCheckInputs = [
+    jinja2
     lxml
     pytestCheckHook
   ];
 
-  # Ignore broken fixtures, and tests for files which don't exist.
-  # For darwin, we need to explicity say we can't reach network
   disabledTests = [
-    "export_remote"
-    "element_tree_import_script"
-  ];
-
-  disabledTestPaths = [
-    "tests/test_schemas.py"
-    "tests/test_memory.py"
-    "tests/test_validation.py"
+    # Incorrect error message in pickling test for Python 3.12 in Debian
+    # https://github.com/sissaschool/xmlschema/issues/412
+    "test_pickling_subclassed_schema__issue_263"
   ];
 
   pythonImportsCheck = [ "xmlschema" ];
@@ -47,7 +45,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "XML Schema validator and data conversion library for Python";
     homepage = "https://github.com/sissaschool/xmlschema";
+    changelog = "https://github.com/sissaschool/xmlschema/blob/${src.rev}/CHANGELOG.rst";
     license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    maintainers = [ ];
   };
 }

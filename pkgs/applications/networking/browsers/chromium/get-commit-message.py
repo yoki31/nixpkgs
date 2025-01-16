@@ -13,13 +13,14 @@ from collections import OrderedDict
 import feedparser
 import requests
 
-feed = feedparser.parse('https://chromereleases.googleblog.com/feeds/posts/default')
+# Official rss/atom feed taken from <https://chromereleases.googleblog.com/>'s html source (<link type="application/atom+xml">)
+feed = feedparser.parse('https://www.blogger.com/feeds/8982037438137564684/posts/default')
 html_tags = re.compile(r'<[^>]+>')
 target_version = sys.argv[1] if len(sys.argv) == 2 else None
 
 for entry in feed.entries:
     url = requests.get(entry.link).url.split('?')[0]
-    if entry.title != 'Stable Channel Update for Desktop':
+    if entry.title.lower() != 'Stable Channel Update for Desktop'.lower():
         if target_version and entry.title == '':
             # Workaround for a special case (Chrome Releases bug?):
             if not 'the-stable-channel-has-been-updated-to' in url:
@@ -38,9 +39,9 @@ for entry in feed.entries:
     else:
         print('chromium: TODO -> ' + version + '\n')
     print(url)
-    if fixes := re.search(r'This update includes .+ security fixes\.', content).group(0):
-        zero_days = re.search(r'Google is aware( of reports)? th(e|at) .+ in the wild\.', content)
-        if zero_days:
+    if fixes := re.search(r'This update includes .+ security fix(es)?\.', content):
+        fixes = fixes.group(0)
+        if zero_days := re.search(r'Google is aware( of reports)? th(e|at) .+ in the wild\.', content):
             fixes += " " + zero_days.group(0)
         print('\n' + '\n'.join(textwrap.wrap(fixes, width=72)))
     if cve_list := re.findall(r'CVE-[^: ]+', content):

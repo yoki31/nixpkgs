@@ -1,25 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, beautifulsoup4
-, geojson
-, lxml
-, matplotlib
-, numpy
-, pandas
-, ujson
-, xarray
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  beautifulsoup4,
+  geojson,
+  lxml,
+  matplotlib,
+  numpy,
+  pandas,
+  ujson,
+  xarray,
 }:
 
 buildPythonPackage rec {
   pname = "osmpythontools";
-  version = "0.3.3";
+  version = "0.3.5";
+  format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "mocnik-science";
     repo = "osm-python-tools";
-    rev = "v.${version}";
-    sha256 = "sha256-335zo/kOX4OpUwHas2aaPibY6zNmDaaHJpolbTQWqKk=";
+    rev = "v${version}";
+    hash = "sha256-lTDA1Rad9aYI/ymU/0xzdJHmebUGcpVJ0GW7D0Ujdko=";
   };
 
   propagatedBuildInputs = [
@@ -46,7 +48,7 @@ buildPythonPackage rec {
   ];
 
   meta = with lib; {
-    description = "A library to access OpenStreetMap-related services";
+    description = "Library to access OpenStreetMap-related services";
     longDescription = ''
       The python package OSMPythonTools provides easy access to
       OpenStreetMap-related services, among them an Overpass endpoint,
@@ -54,6 +56,7 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/mocnik-science/osm-python-tools";
     license = licenses.gpl3Only;
-    maintainers = with maintainers; [ das-g ];
+    changelog = "https://raw.githubusercontent.com/mocnik-science/osm-python-tools/v${version}/version-history.md";
+    maintainers = with maintainers; teams.geospatial.members ++ [ das-g ];
   };
 }

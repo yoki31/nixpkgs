@@ -1,14 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, docutils
-, requests
-, pytest
-, testpath
-, responses
-, flit-core
-, tomli
-, tomli-w
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  docutils,
+  pip,
+  requests,
+  tomli-w,
+
+  # tests
+  pytestCheckHook,
+  testpath,
+  responses,
 }:
 
 # Flit is actually an application to build universal wheels.
@@ -18,40 +25,47 @@
 
 buildPythonPackage rec {
   pname = "flit";
-  version = "3.6.0";
+  version = "3.10.0";
   format = "pyproject";
 
   src = fetchFromGitHub {
-    owner = "takluyver";
+    owner = "pypa";
     repo = "flit";
     rev = version;
-    sha256 = "sha256-D3q/1g6njrrmizooGmzNd9g2nKs00dMGj9jrrv3Y6HQ=";
+    hash = "sha256-4JMoK1UxYcHoSvKDF7Yn4iqMXokyCPCswQknK0a070k=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     docutils
-    requests
     flit-core
-    tomli
+    pip
+    requests
     tomli-w
   ];
 
-  checkInputs = [ pytest testpath responses ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    testpath
+    responses
+  ];
 
-  # Disable test that needs some ini file.
-  # Disable test that wants hg
-  checkPhase = ''
-    HOME=$(mktemp -d) pytest -k "not test_invalid_classifier and not test_build_sdist"
-  '';
+  disabledTests = [
+    # needs some ini file.
+    "test_invalid_classifier"
+    # calls pip directly. disabled for PEP 668
+    "test_install_data_dir"
+    "test_install_module_pep621"
+    "test_symlink_data_dir"
+    "test_symlink_module_pep621"
+  ];
 
   meta = with lib; {
-    description = "A simple packaging tool for simple packages";
-    homepage = "https://github.com/takluyver/flit";
+    changelog = "https://github.com/pypa/flit/blob/${version}/doc/history.rst";
+    description = "Simple packaging tool for simple packages";
+    mainProgram = "flit";
+    homepage = "https://github.com/pypa/flit";
     license = licenses.bsd3;
-    maintainers = [ maintainers.fridh ];
   };
 }

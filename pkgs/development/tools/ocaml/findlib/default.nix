@@ -1,31 +1,48 @@
-{ lib, stdenv, fetchurl, fetchpatch, m4, ncurses, ocaml, writeText }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  ncurses,
+  ocaml,
+  writeText,
+}:
 
 stdenv.mkDerivation rec {
-  pname = "ocaml-findlib";
-  version = "1.9.1";
+  pname = "ocaml${ocaml.version}-findlib";
+  version = "1.9.8";
 
   src = fetchurl {
     url = "http://download.camlcity.org/download/findlib-${version}.tar.gz";
-    sha256 = "sha256-K0K4vVRIjWTEvzy3BUtLN70wwdwSvUMeoeTXrYqYD+I=";
+    hash = "sha256-ZiyRD3dOn+46GcTgV/OAWBqy/E7lLaR2EwSsnDG4hp0=";
   };
 
-  nativeBuildInputs = [m4 ocaml];
-  buildInputs = [ ncurses ];
+  nativeBuildInputs = [ ocaml ];
+  buildInputs = lib.optional (lib.versionOlder ocaml.version "4.07") ncurses;
 
-  patches = [ ./ldconf.patch ./install_topfind.patch ];
-
-  dontAddPrefix=true;
-  dontAddStaticConfigureFlags = true;
-  configurePlatforms = [];
-
-  configureFlags = [
-      "-bindir" "${placeholder "out"}/bin"
-      "-mandir" "${placeholder "out"}/share/man"
-      "-sitelib" "${placeholder "out"}/lib/ocaml/${ocaml.version}/site-lib"
-      "-config" "${placeholder "out"}/etc/findlib.conf"
+  patches = [
+    ./ldconf.patch
+    ./install_topfind.patch
   ];
 
-  buildFlags = [ "all" "opt" ];
+  dontAddPrefix = true;
+  dontAddStaticConfigureFlags = true;
+  configurePlatforms = [ ];
+
+  configureFlags = [
+    "-bindir"
+    "${placeholder "out"}/bin"
+    "-mandir"
+    "${placeholder "out"}/share/man"
+    "-sitelib"
+    "${placeholder "out"}/lib/ocaml/${ocaml.version}/site-lib"
+    "-config"
+    "${placeholder "out"}/etc/findlib.conf"
+  ];
+
+  buildFlags = [
+    "all"
+    "opt"
+  ];
 
   setupHook = writeText "setupHook.sh" ''
     addOCamlPath () {
@@ -36,27 +53,46 @@ stdenv.mkDerivation rec {
             export CAML_LD_LIBRARY_PATH="''${CAML_LD_LIBRARY_PATH-}''${CAML_LD_LIBRARY_PATH:+:}''$1/lib/ocaml/${ocaml.version}/site-lib/stublibs"
         fi
     }
-    createOcamlDestDir () {
+    exportOcamlDestDir () {
         export OCAMLFIND_DESTDIR="''$out/lib/ocaml/${ocaml.version}/site-lib/"
+    }
+    createOcamlDestDir () {
         if test -n "''${createFindlibDestdir-}"; then
           mkdir -p $OCAMLFIND_DESTDIR
         fi
     }
+    detectOcamlConflicts () {
+      local conflict
+      conflict="$(ocamlfind list |& grep "has multiple definitions" || true)"
+      if [[ -n "$conflict" ]]; then
+        echo "Conflicting ocaml packages detected";
+        echo "$conflict"
+        echo "Set dontDetectOcamlConflicts to true to disable this check."
+        exit 1
+      fi
+    }
 
+    # run for every buildInput
     addEnvHooks "$targetOffset" addOCamlPath
-    preConfigureHooks+=(createOcamlDestDir)
+    # run before installPhase, even without buildInputs, and not in nix-shell
+    preInstallHooks+=(createOcamlDestDir)
+    # run even in nix-shell, and even without buildInputs
+    addEnvHooks "$hostOffset" exportOcamlDestDir
+    # runs after all calls to addOCamlPath
+    if [[ -z "''${dontDetectOcamlConflicts-}" ]]; then
+      postHooks+=("detectOcamlConflicts")
+    fi
   '';
 
   meta = {
-    homepage = "http://projects.camlcity.org/projects/findlib.html";
     description = "O'Caml library manager";
+    homepage = "http://projects.camlcity.org/projects/findlib.html";
     license = lib.licenses.mit;
-    platforms = ocaml.meta.platforms or [];
-    maintainers = [
-      lib.maintainers.maggesi
-      lib.maintainers.vbmithr
+    maintainers = with lib.maintainers; [
+      maggesi
+      vbmithr
     ];
+    mainProgram = "ocamlfind";
+    platforms = ocaml.meta.platforms or [ ];
   };
 }
-
-

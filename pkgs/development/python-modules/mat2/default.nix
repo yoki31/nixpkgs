@@ -1,67 +1,79 @@
-{ lib
-, buildPythonPackage
-, python
-, pythonOlder
-, fetchFromGitLab
-, substituteAll
-, bubblewrap
-, exiftool
-, ffmpeg
-, mime-types
-, wrapGAppsHook
-, gdk-pixbuf
-, gobject-introspection
-, librsvg
-, poppler_gi
-, mutagen
-, pygobject3
-, pycairo
-, dolphinIntegration ? false, plasma5Packages
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  pytestCheckHook,
+  pythonOlder,
+  fetchFromGitLab,
+  substituteAll,
+  bubblewrap,
+  exiftool,
+  ffmpeg,
+  wrapGAppsHook3,
+  gdk-pixbuf,
+  gobject-introspection,
+  librsvg,
+  poppler_gi,
+  mutagen,
+  pygobject3,
+  pycairo,
+  dolphinIntegration ? false,
+  plasma5Packages,
 }:
 
 buildPythonPackage rec {
   pname = "mat2";
-  version = "0.12.3";
+  version = "0.13.4";
 
   disabled = pythonOlder "3.5";
+
+  format = "setuptools";
 
   src = fetchFromGitLab {
     domain = "0xacab.org";
     owner = "jvoisin";
     repo = "mat2";
     rev = version;
-    hash = "sha256-TW+FwlZ+J1tanPL5WuwXtZJmtYB9LaimeIaPlN/jzqo=";
+    hash = "sha256-SuN62JjSb5O8gInvBH+elqv/Oe7j+xjCo+dmPBU7jEY=";
   };
 
-  patches = [
-    # hardcode paths to some binaries
-    (substituteAll ({
-      src = ./paths.patch;
-      bwrap = "${bubblewrap}/bin/bwrap";
-      exiftool = "${exiftool}/bin/exiftool";
-      ffmpeg = "${ffmpeg}/bin/ffmpeg";
-    } // lib.optionalAttrs dolphinIntegration {
-      kdialog = "${plasma5Packages.kdialog}/bin/kdialog";
-    }))
-    # the executable shouldn't be called .mat2-wrapped
-    ./executable-name.patch
-    # hardcode path to mat2 executable
-    ./tests.patch
-  ];
+  patches =
+    [
+      # hardcode paths to some binaries
+      (substituteAll (
+        {
+          src = ./paths.patch;
+          exiftool = "${exiftool}/bin/exiftool";
+          ffmpeg = "${ffmpeg}/bin/ffmpeg";
+        }
+        // lib.optionalAttrs dolphinIntegration { kdialog = "${plasma5Packages.kdialog}/bin/kdialog"; }
+      ))
+      # the executable shouldn't be called .mat2-wrapped
+      ./executable-name.patch
+      # hardcode path to mat2 executable
+      ./tests.patch
+    ]
+    ++ lib.optionals (stdenv.hostPlatform.isLinux) [
+      (substituteAll {
+        src = ./bubblewrap-path.patch;
+        bwrap = "${bubblewrap}/bin/bwrap";
+      })
+    ];
 
   postPatch = ''
+    rm pyproject.toml
     substituteInPlace dolphin/mat2.desktop \
       --replace "@mat2@" "$out/bin/mat2" \
       --replace "@mat2svg@" "$out/share/icons/hicolor/scalable/apps/mat2.svg"
   '';
 
   nativeBuildInputs = [
-    wrapGAppsHook
+    gobject-introspection
+    wrapGAppsHook3
   ];
 
   buildInputs = [
     gdk-pixbuf
-    gobject-introspection
     librsvg
     poppler_gi
   ];
@@ -72,25 +84,28 @@ buildPythonPackage rec {
     pycairo
   ];
 
-  postInstall = ''
-    install -Dm 444 data/mat2.svg -t "$out/share/icons/hicolor/scalable/apps"
-    install -Dm 444 doc/mat2.1 -t "$out/share/man/man1"
-    install -Dm 444 nautilus/mat2.py -t "$out/share/nautilus-python/extensions"
-    buildPythonPath "$out $pythonPath"
-    patchPythonScript "$out/share/nautilus-python/extensions/mat2.py"
-  '' + lib.optionalString dolphinIntegration ''
-    install -Dm 444 dolphin/mat2.desktop -t "$out/share/kservices5/ServiceMenus"
-  '';
+  postInstall =
+    ''
+      install -Dm 444 data/mat2.svg -t "$out/share/icons/hicolor/scalable/apps"
+      install -Dm 444 doc/mat2.1 -t "$out/share/man/man1"
+    ''
+    + lib.optionalString dolphinIntegration ''
+      install -Dm 444 dolphin/mat2.desktop -t "$out/share/kservices5/ServiceMenus"
+    '';
 
-  checkPhase = ''
-    ${python.interpreter} -m unittest discover -v
-  '';
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  disabledTests = [
+    # libmat2.pdf.cairo.MemoryError: out of memory
+    "test_all"
+  ];
 
   meta = with lib; {
-    description = "A handy tool to trash your metadata";
+    description = "Handy tool to trash your metadata";
     homepage = "https://0xacab.org/jvoisin/mat2";
     changelog = "https://0xacab.org/jvoisin/mat2/-/blob/${version}/CHANGELOG.md";
     license = licenses.lgpl3Plus;
+    mainProgram = "mat2";
     maintainers = with maintainers; [ dotlambda ];
   };
 }

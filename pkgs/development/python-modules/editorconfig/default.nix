@@ -1,38 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchgit
-, cmake
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  cmake,
 }:
 
 buildPythonPackage rec {
   pname = "editorconfig";
-  version = "0.12.3";
+  version = "0.17.0";
+  pyproject = true;
 
-  # fetchgit used to ensure test submodule is available
-  src = fetchgit {
-    url = "https://github.com/editorconfig/editorconfig-core-py";
-    rev = "1a8fb62b9941fded9e4fb83a3d0599427f5484cb"; # Not tagged
-    sha256 = "0vx8rl7kii72965jsi01mdsz9rfi1q9bwy13x47iaqm6rmcwc1rb";
+  src = fetchFromGitHub {
+    owner = "editorconfig";
+    repo = "editorconfig-core-py";
+    rev = "v${version}";
+    hash = "sha256-vYuXW+Yb0GXZAwaarV4WBIJtS31+EleiddU9ibBn/hs=";
+    fetchSubmodules = true;
   };
 
-  nativeBuildInputs = [
-    cmake
-  ];
+  build-system = [ setuptools ];
+
+  nativeCheckInputs = [ cmake ];
 
   dontUseCmakeConfigure = true;
 
   checkPhase = ''
+    runHook preCheck
+
     cmake .
-    # utf_8_char fails with Python 3
-    ctest -E "utf_8_char" .
+    ctest .
+
+    runHook postCheck
   '';
 
   pythonImportsCheck = [ "editorconfig" ];
 
   meta = with lib; {
     description = "EditorConfig File Locator and Interpreter for Python";
-    homepage = "https://editorconfig.org";
+    mainProgram = "editorconfig";
+    homepage = "https://github.com/editorconfig/editorconfig-core-py";
     license = licenses.psfl;
-    maintainers = with maintainers; [ ];
+    maintainers = with maintainers; [ nickcao ];
   };
 }

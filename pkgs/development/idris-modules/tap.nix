@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, contrib
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  contrib,
+  lib,
 }:
-build-idris-package  {
-  name = "tap";
+build-idris-package {
+  pname = "tap";
   version = "2017-04-08";
 
   ipkgName = "TAP";
@@ -18,7 +19,7 @@ build-idris-package  {
   };
 
   meta = {
-    description = "A simple TAP producer and consumer/reporter for Idris";
+    description = "Simple TAP producer and consumer/reporter for Idris";
     homepage = "https://github.com/ostera/tap-idris";
     license = lib.licenses.bsd3;
     maintainers = [ lib.maintainers.brainrape ];

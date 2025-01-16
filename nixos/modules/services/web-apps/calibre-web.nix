@@ -10,6 +10,8 @@ in
     services.calibre-web = {
       enable = mkEnableOption "Calibre-Web";
 
+      package = lib.mkPackageOption pkgs "calibre-web" { };
+
       listen = {
         ip = mkOption {
           type = types.str;
@@ -30,9 +32,9 @@ in
 
       dataDir = mkOption {
         type = types.str;
-        default = "calibre-web";
+        default = "/var/lib/calibre-web";
         description = ''
-          The directory below <filename>/var/lib</filename> where Calibre-Web stores its data.
+          The directory where Calibre-Web stores its data.
         '';
       };
 
@@ -73,6 +75,8 @@ in
           '';
         };
 
+        enableKepubify = mkEnableOption "kebup conversion support";
+
         enableBookUploading = mkOption {
           type = types.bool;
           default = false;
@@ -103,10 +107,15 @@ in
   };
 
   config = mkIf cfg.enable {
+    systemd.tmpfiles.settings."10-calibre-web".${cfg.dataDir}.d = {
+      inherit (cfg) user group;
+      mode = "0700";
+    };
+
     systemd.services.calibre-web = let
-      appDb = "/var/lib/${cfg.dataDir}/app.db";
-      gdriveDb = "/var/lib/${cfg.dataDir}/gdrive.db";
-      calibreWebCmd = "${pkgs.calibre-web}/bin/calibre-web -p ${appDb} -g ${gdriveDb}";
+      appDb = "${cfg.dataDir}/app.db";
+      gdriveDb = "${cfg.dataDir}/gdrive.db";
+      calibreWebCmd = "${cfg.package}/bin/calibre-web -p ${appDb} -g ${gdriveDb}";
 
       settings = concatStringsSep ", " (
         [
@@ -117,6 +126,7 @@ in
         ]
         ++ optional (cfg.options.calibreLibrary != null) "config_calibre_dir = '${cfg.options.calibreLibrary}'"
         ++ optional cfg.options.enableBookConversion "config_converterpath = '${pkgs.calibre}/bin/ebook-convert'"
+        ++ optional cfg.options.enableKepubify "config_kepubifypath = '${pkgs.kepubify}/bin/kepubify'"
       );
     in
       {
@@ -129,14 +139,13 @@ in
           User = cfg.user;
           Group = cfg.group;
 
-          StateDirectory = cfg.dataDir;
           ExecStartPre = pkgs.writeShellScript "calibre-web-pre-start" (
             ''
               __RUN_MIGRATIONS_AND_EXIT=1 ${calibreWebCmd}
 
               ${pkgs.sqlite}/bin/sqlite3 ${appDb} "update settings set ${settings}"
             '' + optionalString (cfg.options.calibreLibrary != null) ''
-              test -f ${cfg.options.calibreLibrary}/metadata.db || { echo "Invalid Calibre library"; exit 1; }
+              test -f "${cfg.options.calibreLibrary}/metadata.db" || { echo "Invalid Calibre library"; exit 1; }
             ''
           );
 

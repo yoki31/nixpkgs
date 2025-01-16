@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, contrib
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  contrib,
+  lib,
 }:
-build-idris-package  {
-  name = "tparsec";
+build-idris-package {
+  pname = "tparsec";
   version = "2020-02-11";
 
   ipkgName = "TParsec";

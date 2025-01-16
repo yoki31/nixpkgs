@@ -1,59 +1,85 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, nix-update-script
-, cmake
-, pkg-config
-, fribidi
-, harfbuzz
-, libunistring
-, libwebp
-, mpg123
-, openssl
-, pcre
-, SDL2
-, AppKit
-, zip
-, zlib
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  nix-update-script,
+  cmake,
+  pkg-config,
+  fribidi,
+  harfbuzz,
+  libogg,
+  libwebp,
+  mpg123,
+  opusfile,
+  SDL2,
+  the-foundation,
+  AppKit,
+  zip,
+  enableTUI ? false,
+  ncurses,
+  sealcurses,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "lagrange";
-  version = "1.10.3";
+  version = "1.18.4";
 
   src = fetchFromGitHub {
     owner = "skyjake";
     repo = "lagrange";
-    rev = "v${version}";
-    sha256 = "sha256-4Xjm4P4uK0aZxUT0WzcSDdY6rEeh5YFwsMfVtFB14No=";
-    fetchSubmodules = true;
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-Bty2TRL5blduhucYmI6x3RZVdgrY0/7Dtm5kgQ2N3ec=";
   };
 
-  postPatch = ''
-    rm -r lib/fribidi lib/harfbuzz
-  '';
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+    zip
+  ];
 
-  nativeBuildInputs = [ cmake pkg-config zip ];
+  buildInputs =
+    [
+      the-foundation
+      fribidi
+      harfbuzz
+      libogg
+      libwebp
+      mpg123
+      opusfile
+      SDL2
+    ]
+    ++ lib.optionals enableTUI [
+      ncurses
+      sealcurses
+    ]
+    ++ lib.optional stdenv.hostPlatform.isDarwin AppKit;
 
-  buildInputs = [ fribidi harfbuzz libunistring libwebp mpg123 openssl pcre SDL2 zlib ]
-    ++ lib.optional stdenv.isDarwin AppKit;
+  cmakeFlags = [
+    (lib.cmakeBool "ENABLE_TUI" enableTUI)
+    (lib.cmakeFeature "CMAKE_INSTALL_DATAROOTDIR" "${placeholder "out"}/share")
+  ];
 
-  installPhase = lib.optionalString stdenv.isDarwin ''
-    mkdir -p $out/Applications
-    mv Lagrange.app $out/Applications
-  '';
+  installPhase =
+    lib.optionalString stdenv.hostPlatform.isDarwin ''
+      mkdir -p $out/Applications
+      mv Lagrange.app $out/Applications
+    ''
+    + lib.optionalString (stdenv.hostPlatform.isDarwin && enableTUI) ''
+      # https://github.com/skyjake/lagrange/issues/610
+      make install
+      install -d $out/share/lagrange
+      ln -s $out/Applications/Lagrange.app/Contents/Resources/resources.lgr $out/share/lagrange/resources.lgr
+    '';
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = pname;
-    };
+    updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
-    description = "A Beautiful Gemini Client";
+  meta = {
+    description = "Beautiful Gemini Client";
     homepage = "https://gmi.skyjake.fi/lagrange/";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ sikmir ];
-    platforms = platforms.unix;
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ sikmir ];
+    platforms = lib.platforms.unix;
   };
-}
+})

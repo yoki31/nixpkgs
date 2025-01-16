@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, idrisscript
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  idrisscript,
+  lib,
 }:
-build-idris-package  {
-  name = "webgl";
+build-idris-package {
+  pname = "webgl";
   version = "2017-05-08";
 
   idrisDeps = [ idrisscript ];

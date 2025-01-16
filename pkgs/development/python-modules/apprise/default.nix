@@ -1,28 +1,59 @@
-{ lib, buildPythonPackage, fetchPypi, installShellFiles
-, Babel, requests, requests_oauthlib, six, click, markdown, pyyaml, cryptography
-, pytest-runner, coverage, flake8, mock, pytestCheckHook, pytest-cov, tox, gntp, sleekxmpp
+{
+  lib,
+  apprise,
+  babel,
+  buildPythonPackage,
+  click,
+  cryptography,
+  fetchPypi,
+  gntp,
+  installShellFiles,
+  markdown,
+  paho-mqtt,
+  pytest-mock,
+  pytestCheckHook,
+  pythonOlder,
+  pyyaml,
+  requests,
+  requests-oauthlib,
+  setuptools,
+  testers,
 }:
 
 buildPythonPackage rec {
   pname = "apprise";
-  version = "0.9.7";
+  version = "1.9.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-BOMeSvwmGiZvA95+e2bceCGXRwowU5+zJAl7Sn4wKqM=";
+    hash = "sha256-KQ6xIXAo3VBAgCNxSU1wwbyrkH5mNKd8JjSJ2+T9c6g=";
   };
 
-  nativeBuildInputs = [ Babel installShellFiles ];
+  nativeBuildInputs = [ installShellFiles ];
 
-  propagatedBuildInputs = [
-    cryptography requests requests_oauthlib six click markdown pyyaml
+  build-system = [
+    babel
+    setuptools
   ];
 
-  checkInputs = [
-    pytest-runner coverage flake8 mock pytestCheckHook pytest-cov tox gntp sleekxmpp
+  dependencies = [
+    click
+    cryptography
+    markdown
+    pyyaml
+    requests
+    requests-oauthlib
   ];
 
-  disabledTests = [ "test_apprise_cli_nux_env"  ];
+  nativeCheckInputs = [
+    gntp
+    paho-mqtt
+    pytest-mock
+    pytestCheckHook
+  ];
 
   postInstall = ''
     installManPage packaging/man/apprise.1
@@ -30,10 +61,19 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "apprise" ];
 
-  meta = with lib; {
+  passthru = {
+    tests.version = testers.testVersion {
+      package = apprise;
+      version = "v${version}";
+    };
+  };
+
+  meta = {
+    description = "Push Notifications that work with just about every platform";
     homepage = "https://github.com/caronc/apprise";
-    description = "Push Notifications that work with just about every platform!";
-    license = licenses.mit;
-    maintainers = [ maintainers.marsam ];
+    changelog = "https://github.com/caronc/apprise/releases/tag/v${version}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ getchoo ];
+    mainProgram = "apprise";
   };
 }

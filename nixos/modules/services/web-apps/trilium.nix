@@ -10,6 +10,7 @@ let
     # Disable automatically generating desktop icon
     noDesktopIcon=true
     noBackup=${lib.boolToString cfg.noBackup}
+    noAuthentication=${lib.boolToString cfg.noAuthentication}
 
     [Network]
     # host setting is relevant only for web deployments - set the host on which the server will listen
@@ -24,6 +25,8 @@ in
 
   options.services.trilium-server = with lib; {
     enable = mkEnableOption "trilium-server";
+
+    package = mkPackageOption pkgs "trilium-server" {};
 
     dataDir = mkOption {
       type = types.str;
@@ -49,6 +52,14 @@ in
       '';
     };
 
+    noAuthentication = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        If set to true, no password is required to access the web frontend.
+      '';
+    };
+
     host = mkOption {
       type = types.str;
       default = "127.0.0.1";
@@ -58,7 +69,7 @@ in
     };
 
     port = mkOption {
-      type = types.int;
+      type = types.port;
       default = 8080;
       description = ''
         The port number to bind to.
@@ -108,7 +119,7 @@ in
       wantedBy = [ "multi-user.target" ];
       environment.TRILIUM_DATA_DIR = cfg.dataDir;
       serviceConfig = {
-        ExecStart = "${pkgs.trilium-server}/bin/trilium-server";
+        ExecStart = lib.getExe cfg.package;
         User = "trilium";
         Group = "trilium";
         PrivateTmp = "true";

@@ -1,78 +1,112 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools-scm
-, idna
-, sniffio
-, typing-extensions
-, curio
-, hypothesis
-, mock
-, pytest-mock
-, pytestCheckHook
-, trio
-, trustme
-, uvloop
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+
+  # build-system
+  setuptools-scm,
+
+  # dependencies
+  exceptiongroup,
+  idna,
+  sniffio,
+  typing-extensions,
+
+  # optionals
+  trio,
+
+  # tests
+  hypothesis,
+  psutil,
+  pytest-mock,
+  pytest-xdist,
+  pytestCheckHook,
+  trustme,
+  uvloop,
+
+  # smoke tests
+  starlette,
 }:
 
 buildPythonPackage rec {
   pname = "anyio";
-  version = "3.3.4";
-  format = "pyproject";
-  disabled = pythonOlder "3.7";
+  version = "4.6.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "agronholm";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-aMnXZ+4dlybId2QhjE/3STY+Sj/vzI6K7wmqqx+P8yE=";
+    repo = "anyio";
+    tag = version;
+    hash = "sha256-8QLOAjQpiNtbd+YSHfqcBVdtMSGJFRevOcacZErKuso=";
   };
 
-  preBuild = ''
-    export SETUPTOOLS_SCM_PRETEND_VERSION=${version}
-  '';
+  build-system = [ setuptools-scm ];
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  dependencies =
+    [
+      idna
+      sniffio
+    ]
+    ++ lib.optionals (pythonOlder "3.11") [
+      exceptiongroup
+      typing-extensions
+    ];
 
-  propagatedBuildInputs = [
-    idna
-    sniffio
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    typing-extensions
-  ];
+  optional-dependencies = {
+    trio = [ trio ];
+  };
 
-  checkInputs = [
-    curio
+  nativeCheckInputs = [
+    exceptiongroup
     hypothesis
+    psutil
     pytest-mock
+    pytest-xdist
     pytestCheckHook
-    trio
     trustme
     uvloop
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    mock
+  ] ++ optional-dependencies.trio;
+
+  pytestFlagsArray = [
+    "-W"
+    "ignore::trio.TrioDeprecationWarning"
+    "-m"
+    "'not network'"
   ];
 
-  disabledTests = [
-    # block devices access
-    "test_is_block_device"
-  ];
+  disabledTests =
+    [
+      # TypeError: __subprocess_run() got an unexpected keyword argument 'umask'
+      "test_py39_arguments"
+      # AttributeError: 'module' object at __main__ has no attribute '__file__'
+      "test_nonexistent_main_module"
+      #  3 second timeout expired
+      "test_keyboardinterrupt_during_test"
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      # PermissionError: [Errno 1] Operation not permitted: '/dev/console'
+      "test_is_block_device"
+    ];
 
   disabledTestPaths = [
     # lots of DNS lookups
     "tests/test_sockets.py"
-  ] ++ lib.optionals stdenv.isDarwin [
-    # darwin sandboxing limitations
-    "tests/streams/test_tls.py"
   ];
+
+  __darwinAllowLocalNetworking = true;
 
   pythonImportsCheck = [ "anyio" ];
 
+  passthru.tests = {
+    inherit starlette;
+  };
+
   meta = with lib; {
+    changelog = "https://github.com/agronholm/anyio/blob/${src.rev}/docs/versionhistory.rst";
     description = "High level compatibility layer for multiple asynchronous event loop implementations on Python";
     homepage = "https://github.com/agronholm/anyio";
     license = licenses.mit;

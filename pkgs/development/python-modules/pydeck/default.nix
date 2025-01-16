@@ -1,26 +1,70 @@
-{ lib, buildPythonPackage, fetchPypi, ipykernel, ipywidgets, pythonOlder, pytestCheckHook, pandas }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  ipykernel,
+  ipywidgets,
+  jinja2,
+  jupyter,
+  numpy,
+  pandas,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  traitlets,
+  wheel,
+}:
 
 buildPythonPackage rec {
   pname = "pydeck";
-  version = "0.7.1";
+  version = "0.9.1";
+  format = "pyproject";
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "907601c99f7510e16d27d7cb62bfa145216d166a2b5c9c50cfe2b65b032ebd2e";
+    hash = "sha256-90R1rmN5UdY/LuWDJnV/jU+c2fKkV89ClQcVAD4stgU=";
+  };
+
+  # upstream has an invalid pyproject.toml
+  # https://github.com/visgl/deck.gl/issues/8469
+  postPatch = ''
+    rm pyproject.toml
+  '';
+
+  nativeBuildInputs = [
+    jinja2
+    jupyter
+    setuptools
+    wheel
+  ];
+
+  propagatedBuildInputs = [
+    jinja2
+    numpy
+  ];
+
+  optional-dependencies = {
+    carto = [
+      # pydeck-carto
+    ];
+    jupyter = [
+      ipykernel
+      ipywidgets
+      traitlets
+    ];
   };
 
   pythonImportsCheck = [ "pydeck" ];
 
-  checkInputs = [ pytestCheckHook pandas ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    pandas
+  ] ++ optional-dependencies.jupyter;
+
   # tries to start a jupyter server
   disabledTests = [ "test_nbconvert" ];
-
-  propagatedBuildInputs = [
-    ipykernel
-    ipywidgets
-  ];
 
   meta = with lib; {
     homepage = "https://github.com/visgl/deck.gl/tree/master/bindings/pydeck";

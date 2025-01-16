@@ -1,40 +1,44 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, meson
-, ninja
-, pkg-config
-, vala
-, libgee
-, libgtop
-, libhandy
-, granite
-, gtk3
-, switchboard
-, fwupd
-, appstream
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  libadwaita,
+  libgee,
+  libgtop,
+  libgudev,
+  libsoup_3,
+  gettext,
+  glib,
+  granite7,
+  gtk4,
+  packagekit,
+  polkit,
+  switchboard,
+  udisks2,
+  fwupd,
+  appstream,
+  elementary-settings-daemon,
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-about";
-  version = "6.0.1";
+  version = "8.1.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
     rev = version;
-    sha256 = "0c075ac7iqz4hqbp2ph0cwyhiq0jn6c1g1jjfhygjbssv3vvd268";
+    sha256 = "sha256-Z+dhNUGDDLxzPLAaFkvWA+d6YvfM5NayOMu3SKjswLs=";
   };
 
-  patches = [
-    # Introduces a wallpaper meson flag.
-    # The wallpapaper path does not exist on NixOS, let's just remove the wallpaper.
-    # https://github.com/elementary/switchboard-plug-about/pull/236
-    ./add-wallpaper-option.patch
-  ];
-
   nativeBuildInputs = [
+    gettext # msgfmt
+    glib # glib-compile-resources
     meson
     ninja
     pkg-config
@@ -43,24 +47,23 @@ stdenv.mkDerivation rec {
 
   buildInputs = [
     appstream
+    elementary-settings-daemon # for gsettings schemas
     fwupd
-    granite
-    gtk3
+    granite7
+    gtk4
+    libadwaita
     libgee
     libgtop
-    libhandy
+    libgudev
+    libsoup_3
+    packagekit
+    polkit
     switchboard
-  ];
-
-  mesonFlags = [
-    # This option is introduced in add-wallpaper-option.patch
-    "-Dwallpaper=false"
+    udisks2
   ];
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

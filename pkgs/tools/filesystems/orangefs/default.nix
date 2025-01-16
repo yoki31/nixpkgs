@@ -1,6 +1,18 @@
-{ lib, stdenv, fetchurl, bison, flex, autoreconfHook
-, openssl, db, attr, perl, tcsh
-} :
+{
+  lib,
+  stdenv,
+  fetchurl,
+  fetchpatch,
+  bison,
+  flex,
+  autoreconfHook,
+  openssl,
+  db,
+  attr,
+  perl,
+  tcsh,
+  nixosTests,
+}:
 
 stdenv.mkDerivation rec {
   pname = "orangefs";
@@ -11,8 +23,27 @@ stdenv.mkDerivation rec {
     sha256 = "0c2yla615j04ygclfavh8g5miqhbml2r0zs2c5mvkacf9in7p7sq";
   };
 
-  nativeBuildInputs = [ bison flex perl autoreconfHook ];
-  buildInputs = [ openssl db attr tcsh ];
+  patches = [
+    # Pull upstream fix for -fno-common toolchains
+    (fetchpatch {
+      name = "fno-common.patch";
+      url = "https://github.com/waltligon/orangefs/commit/f472beb50356bea657d1c32f1ca8a73e4718fd57.patch";
+      sha256 = "0jaq1ffdxgymjciddsy8h8r87nwbif4v5yv4wd7jxysn25a0hdai";
+    })
+  ];
+
+  nativeBuildInputs = [
+    bison
+    flex
+    perl
+    autoreconfHook
+  ];
+  buildInputs = [
+    openssl
+    db
+    attr
+    tcsh
+  ];
 
   postPatch = ''
     # Issue introduced by attr-2.4.48
@@ -35,7 +66,6 @@ stdenv.mkDerivation rec {
     "--with-ssl=${lib.getDev openssl}"
   ];
 
-
   enableParallelBuilding = true;
 
   postInstall = ''
@@ -51,10 +81,19 @@ stdenv.mkDerivation rec {
     sed -i 's:openssl:${openssl}/bin/openssl:' $out/bin/pvfs2-gen-keys.sh
   '';
 
+  passthru.tests = { inherit (nixosTests) orangefs; };
+
   meta = with lib; {
     description = "Scale-out network file system for use on high-end computing systems";
     homepage = "http://www.orangefs.org/";
-    license = with licenses;  [ asl20 bsd3 gpl2 lgpl21 lgpl21Plus openldap ];
+    license = with licenses; [
+      asl20
+      bsd3
+      gpl2Only
+      lgpl21
+      lgpl21Plus
+      openldap
+    ];
     platforms = [ "x86_64-linux" ];
     maintainers = with maintainers; [ markuskowa ];
   };

@@ -1,52 +1,55 @@
-{ buildPythonApplication
-, lib
-, fetchFromGitHub
+{
+  buildPythonApplication,
+  lib,
+  fetchFromGitHub,
 
   # build inputs
-, atk
-, gdk-pixbuf
-, glib-networking
-, gnome-desktop
-, gobject-introspection
-, gst_all_1
-, gtk3
-, libnotify
-, pango
-, webkitgtk
-, wrapGAppsHook
+  atk,
+  file,
+  gdk-pixbuf,
+  glib-networking,
+  gnome-desktop,
+  gobject-introspection,
+  gst_all_1,
+  gtk3,
+  libnotify,
+  pango,
+  webkitgtk_4_0,
+  wrapGAppsHook3,
 
   # check inputs
-, xvfb-run
-, nose
-, flake8
+  xvfb-run,
+  nose2,
+  flake8,
 
   # python dependencies
-, dbus-python
-, distro
-, evdev
-, lxml
-, pillow
-, pygobject3
-, pyyaml
-, requests
-, keyring
-, python_magic
+  certifi,
+  dbus-python,
+  distro,
+  evdev,
+  lxml,
+  pillow,
+  pygobject3,
+  pypresence,
+  pyyaml,
+  requests,
+  protobuf,
+  moddb,
 
   # commands that lutris needs
-, xrandr
-, pciutils
-, psmisc
-, glxinfo
-, vulkan-tools
-, xboxdrv
-, pulseaudio
-, p7zip
-, xgamma
-, libstrangle
-, wine
-, fluidsynth
-, xorgserver
-, xorg
+  xrandr,
+  pciutils,
+  psmisc,
+  mesa-demos,
+  vulkan-tools,
+  pulseaudio,
+  p7zip,
+  xgamma,
+  libstrangle,
+  fluidsynth,
+  xorgserver,
+  xorg,
+  util-linux,
 }:
 
 let
@@ -55,98 +58,107 @@ let
     xrandr
     pciutils
     psmisc
-    glxinfo
+    mesa-demos
     vulkan-tools
-    xboxdrv
     pulseaudio
     p7zip
     xgamma
     libstrangle
-    wine
     fluidsynth
     xorgserver
     xorg.setxkbmap
     xorg.xkbcomp
+    # bypass mount suid wrapper which does not work in fhsenv
+    util-linux
   ];
-
-  binPath = lib.makeBinPath requiredTools;
-
-  gstDeps = with gst_all_1; [
-    gst-libav
-    gst-plugins-bad
-    gst-plugins-base
-    gst-plugins-good
-    gst-plugins-ugly
-    gstreamer
-  ];
-
 in
 buildPythonApplication rec {
-  pname = "lutris-original";
-  version = "0.5.9.1";
+  pname = "lutris-unwrapped";
+  version = "0.5.18";
 
   src = fetchFromGitHub {
     owner = "lutris";
     repo = "lutris";
     rev = "v${version}";
-    sha256 = "sha256-ykPJneCKbFKv0x/EDo9PkRb1LkMeFeYzTDmvE3ShNe0=";
+    hash = "sha256-dI5hqWBWrOGYUEM9Mfm7bTh7BEc4e+T9gJeiZ3BiqmE=";
   };
 
-  nativeBuildInputs = [ wrapGAppsHook ];
-  buildInputs = [
-    atk
-    gdk-pixbuf
-    glib-networking
-    gnome-desktop
+  nativeBuildInputs = [
+    wrapGAppsHook3
     gobject-introspection
-    gtk3
-    libnotify
-    pango
-    webkitgtk
-  ] ++ gstDeps;
+  ];
+  buildInputs =
+    [
+      atk
+      gdk-pixbuf
+      glib-networking
+      gnome-desktop
+      gtk3
+      libnotify
+      pango
+      webkitgtk_4_0
+    ]
+    ++ (with gst_all_1; [
+      gst-libav
+      gst-plugins-bad
+      gst-plugins-base
+      gst-plugins-good
+      gst-plugins-ugly
+      gstreamer
+    ]);
 
+  # See `install_requires` in https://github.com/lutris/lutris/blob/master/setup.py
   propagatedBuildInputs = [
-    evdev
-    distro
-    lxml
-    pyyaml
-    pygobject3
-    requests
-    pillow
+    certifi
     dbus-python
-    keyring
-    python_magic
+    distro
+    evdev
+    lxml
+    pillow
+    pygobject3
+    pypresence
+    pyyaml
+    requests
+    protobuf
+    moddb
   ];
 
-  checkInputs = [ xvfb-run nose flake8 ] ++ requiredTools;
-  preCheck = "export HOME=$PWD";
-  checkPhase = ''
-    runHook preCheck
-    xvfb-run -s '-screen 0 800x600x24' make test
-    runHook postCheck
+  postPatch = ''
+    substituteInPlace lutris/util/magic.py \
+      --replace '"libmagic.so.1"' "'${lib.getLib file}/lib/libmagic.so.1'"
   '';
 
-  # unhardcodes xrandr and fixes nosetests
-  # upstream in progress: https://github.com/lutris/lutris/pull/3754
-  patches = [
-    ./fixes.patch
-  ];
+  nativeCheckInputs = [
+    xvfb-run
+    nose2
+    flake8
+  ] ++ requiredTools;
+  checkPhase = ''
+    runHook preCheck
+
+    export HOME=$PWD
+    xvfb-run -s '-screen 0 800x600x24' make test
+
+    runHook postCheck
+  '';
 
   # avoid double wrapping
   dontWrapGApps = true;
   makeWrapperArgs = [
-    "--prefix PATH : ${binPath}"
+    "--prefix PATH : ${lib.makeBinPath requiredTools}"
+    "--prefix APPIMAGE_EXTRACT_AND_RUN : 1"
     "\${gappsWrapperArgs[@]}"
   ];
-  # needed for glib-schemas to work correctly (will crash on dialogues otherwise)
-  # see https://github.com/NixOS/nixpkgs/issues/56943
-  strictDeps = false;
 
   meta = with lib; {
     homepage = "https://lutris.net";
     description = "Open Source gaming platform for GNU/Linux";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ chiiruno ];
+    maintainers = with maintainers; [
+      Madouura
+      rapiteanu
+    ];
     platforms = platforms.linux;
+    mainProgram = "lutris";
   };
 }

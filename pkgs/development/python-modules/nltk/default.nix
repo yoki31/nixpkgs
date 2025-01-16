@@ -1,18 +1,24 @@
-{ fetchPypi, buildPythonPackage, lib, isPy3k
-, click
-, joblib
-, regex
-, tqdm
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  pythonOlder,
+  click,
+  joblib,
+  regex,
+  tqdm,
 }:
 
 buildPythonPackage rec {
-  version = "3.6.7";
   pname = "nltk";
+  version = "3.9.1";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    extension = "zip";
-    sha256 = "51bf1aef5304740a708be7c8e683f7798f03dc5c7a7e7feb758be9e95f4585e3";
+    hash = "sha256-h9EnvT3kvYmk+BJl5fpZyxsZmydEAXU3D3QX0rx66Gg=";
   };
 
   propagatedBuildInputs = [
@@ -30,10 +36,13 @@ buildPythonPackage rec {
   # best.
   doCheck = false;
 
-  meta = {
+  pythonImportsCheck = [ "nltk" ];
+
+  meta = with lib; {
     description = "Natural Language Processing ToolKit";
+    mainProgram = "nltk";
     homepage = "http://nltk.org/";
-    license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ lheckemann ];
+    license = licenses.asl20;
+    maintainers = [ ];
   };
 }

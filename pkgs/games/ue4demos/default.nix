@@ -1,30 +1,45 @@
-{ lib, stdenv, fetchurl, unzip, patchelf, xorg, openal }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  unzip,
+  patchelf,
+  xorg,
+  openal,
+}:
 
 let
-  urls = file:
-    [
-      # Untrusted mirrors - do not update hashes
-      "https://ludios.org/mirror/ue4demos/${file}"
-      "https://web.archive.org/web/20140824192039/http://ue4linux.raxxy.com/${file}"
-    ];
+  urls = file: [
+    # Untrusted mirrors - do not update hashes
+    "https://ludios.org/mirror/ue4demos/${file}"
+    "https://web.archive.org/web/20140824192039/http://ue4linux.raxxy.com/${file}"
+  ];
 
-  buildDemo = { name, src }:
+  buildDemo =
+    { name, src }:
     stdenv.mkDerivation rec {
       inherit name src;
 
-      nativeBuildInputs = [ unzip patchelf ];
+      nativeBuildInputs = [
+        unzip
+        patchelf
+      ];
 
-      rtdeps = lib.makeLibraryPath
-        [ xorg.libXxf86vm xorg.libXext openal ]
-        + ":" + lib.makeSearchPathOutput "lib" "lib64" [ stdenv.cc.cc ];
+      rtdeps =
+        lib.makeLibraryPath [
+          xorg.libXxf86vm
+          xorg.libXext
+          openal
+        ]
+        + ":"
+        + lib.makeSearchPathOutput "lib" "lib64" [ stdenv.cc.cc ];
 
-      buildCommand =
-      ''
+      buildCommand = ''
         mkdir -p "$out"
         cd $out
         unzip $src
 
-        interpreter=$(echo ${stdenv.glibc.out}/lib/ld-linux*.so.2)
+        interpreter=$(echo ${stdenv.cc.libc}/lib/ld-linux*.so.2)
         binary=$(find . -executable -type f)
         patchelf \
           --set-interpreter $interpreter \
@@ -56,7 +71,8 @@ let
       };
     };
 
-in {
+in
+{
   tappy_chicken = buildDemo {
     name = "ue4demos-tappy_chicken";
     src = fetchurl {

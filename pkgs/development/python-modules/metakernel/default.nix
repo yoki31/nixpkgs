@@ -1,26 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, ipykernel
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  ipykernel,
+  jedi,
+  jupyter-core,
+  pexpect,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "metakernel";
-  version = "0.28.2";
+  version = "0.30.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "8811a4497444495639ef000902f4c6e8a7e2c57da1d47a8a24bcc9083548b389";
+    hash = "sha256-Siff2FO4SfASgkLFUgTuWXpajYZClPJghLry+8gU1aQ=";
   };
 
-  propagatedBuildInputs = [ ipykernel ];
+  build-system = [ hatchling ];
+
+  dependencies = [
+    ipykernel
+    jedi
+    jupyter-core
+    pexpect
+  ];
 
   # Tests hang, so disable
   doCheck = false;
 
+  pythonImportsCheck = [ "metakernel" ];
+
   meta = with lib; {
     description = "Jupyter/IPython Kernel Tools";
     homepage = "https://github.com/Calysto/metakernel";
+    changelog = "https://github.com/Calysto/metakernel/blob/v${version}/CHANGELOG.md";
     license = licenses.bsd3;
     maintainers = with maintainers; [ thomasjm ];
   };

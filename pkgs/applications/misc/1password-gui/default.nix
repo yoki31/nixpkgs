@@ -1,121 +1,98 @@
-{ lib
-, stdenv
-, fetchurl
-, makeWrapper
-, alsa-lib
-, at-spi2-atk
-, at-spi2-core
-, atk
-, cairo
-, cups
-, dbus
-, expat
-, gdk-pixbuf
-, glib
-, gtk3
-, libX11
-, libXcomposite
-, libXdamage
-, libXext
-, libXfixes
-, libXrandr
-, libdrm
-, libxcb
-, libxkbcommon
-, libxshmfence
-, mesa
-, nspr
-, nss
-, pango
-, systemd
-, udev
-, xdg-utils
+{
+  stdenv,
+  callPackage,
+  channel ? "stable",
+  fetchurl,
+  lib,
+  # This is only relevant for Linux, so we need to pass it through
+  polkitPolicyOwners ? [ ],
 }:
-stdenv.mkDerivation rec {
+
+let
   pname = "1password";
-  version = "8.3.0";
+  version = if channel == "stable" then "8.10.54" else "8.10.56-1.BETA";
+
+  sources = {
+    stable = {
+      x86_64-linux = {
+        url = "https://downloads.1password.com/linux/tar/stable/x86_64/1password-${version}.x64.tar.gz";
+        hash = "sha256-kpFO59DPBCgD3EdYxq1tom/5/misBsafbsJS+Wj2l3I=";
+      };
+      aarch64-linux = {
+        url = "https://downloads.1password.com/linux/tar/stable/aarch64/1password-${version}.arm64.tar.gz";
+        hash = "sha256-ZZKuPxshI9yLSUMccpXaQDbu8gTvFCaS68tqMstZHJE=";
+      };
+      x86_64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-x86_64.zip";
+        hash = "sha256-Xha7aOuBvG+R1K48gdPj/v4URuIEYv2le+TCxwDnCwk=";
+      };
+      aarch64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-aarch64.zip";
+        hash = "sha256-ukfx7V8totRIyHpmjWDR2O9IDkAY3uq/0jtGPXiZ5Bw=";
+      };
+    };
+    beta = {
+      x86_64-linux = {
+        url = "https://downloads.1password.com/linux/tar/beta/x86_64/1password-${version}.x64.tar.gz";
+        hash = "sha256-25vBmc3AJv4NTI2oOrnTR5pMBMK+wx1s/eg5g8jjtb8=";
+      };
+      aarch64-linux = {
+        url = "https://downloads.1password.com/linux/tar/beta/aarch64/1password-${version}.arm64.tar.gz";
+        hash = "sha256-MLnXEqJM9E+2GAXlqX2dGUzFVk0xv5pmUzLdncakWf8=";
+      };
+      x86_64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-x86_64.zip";
+        hash = "sha256-W7VA7DFpIY2D+0ZqNaLfOzTTqryqpA1iy0+yACNrPlg=";
+      };
+      aarch64-darwin = {
+        url = "https://downloads.1password.com/mac/1Password-${version}-aarch64.zip";
+        hash = "sha256-ZH7xuL0SrkncxI/ngDIYHf4bLwUyTQC4Ki3HgUVza+I=";
+      };
+    };
+  };
 
   src = fetchurl {
-    url = "https://downloads.1password.com/linux/tar/stable/x86_64/1password-${version}.x64.tar.gz";
-    sha256 = "1cakv316ipwyw6s3x4a6qhl0nmg17bxhh08c969gma3svamh1grw";
+    inherit
+      (sources.${channel}.${stdenv.system} or (throw "unsupported system ${stdenv.hostPlatform.system}"))
+      url
+      hash
+      ;
   };
 
-  nativeBuildInputs = [ makeWrapper ];
-
-  dontConfigure = true;
-  dontBuild = true;
-  dontPatchELF = true;
-
-  installPhase =
-    let rpath = lib.makeLibraryPath [
-      alsa-lib
-      at-spi2-atk
-      at-spi2-core
-      atk
-      cairo
-      cups
-      dbus
-      expat
-      gdk-pixbuf
-      glib
-      gtk3
-      libX11
-      libXcomposite
-      libXdamage
-      libXext
-      libXfixes
-      libXrandr
-      libdrm
-      libxcb
-      libxkbcommon
-      libxshmfence
-      mesa
-      nspr
-      nss
-      pango
-      systemd
-    ] + ":${stdenv.cc.cc.lib}/lib64";
-    in ''
-      runHook preInstall
-
-      mkdir -p $out/bin $out/share/1password
-      cp -a * $out/share/1password
-
-      # Desktop file
-      install -Dt $out/share/applications resources/${pname}.desktop
-      substituteInPlace $out/share/applications/${pname}.desktop \
-        --replace 'Exec=/opt/1Password/${pname}' 'Exec=${pname}'
-
-      # Polkit file
-      install -Dm 0644 -t $out/share/polkit-1/actions com.1password.1Password.policy
-
-      # Icons
-      cp -a resources/icons $out/share
-
-      interp="$(cat $NIX_CC/nix-support/dynamic-linker)"
-      patchelf --set-interpreter $interp $out/share/1password/{1password,1Password-BrowserSupport,1Password-KeyringHelper}
-      patchelf --set-rpath ${rpath}:$out/share/1password $out/share/1password/{1password,1Password-BrowserSupport,1Password-KeyringHelper}
-      for file in $(find $out -type f -name \*.so\* ); do
-        patchelf --set-rpath ${rpath}:$out/share/1password $file
-      done
-
-      # Electron is trying to open udev via dlopen()
-      # and for some reason that doesn't seem to be impacted from the rpath.
-      # Adding udev to LD_LIBRARY_PATH fixes that.
-      makeWrapper $out/share/1password/1password $out/bin/1password \
-        --prefix PATH : ${lib.makeBinPath [ xdg-utils ]} \
-        --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ udev ]}
-
-      runHook postInstall
-    '';
-
-  passthru.updateScript = ./update.sh;
-
-  meta = with lib; {
+  meta = {
+    # Requires to be installed in "/Application" which is not possible for now (https://github.com/NixOS/nixpkgs/issues/254944)
+    broken = stdenv.hostPlatform.isDarwin;
     description = "Multi-platform password manager";
     homepage = "https://1password.com/";
-    license = licenses.unfree;
-    maintainers = with maintainers; [ timstott savannidgerinel ];
-    platforms = [ "x86_64-linux" ];
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+    license = lib.licenses.unfree;
+    maintainers = with lib.maintainers; [
+      khaneliman
+      timstott
+      savannidgerinel
+      sebtm
+    ];
+    platforms = builtins.attrNames sources.${channel};
+    mainProgram = "1password";
   };
-}
+
+in
+if stdenv.hostPlatform.isDarwin then
+  callPackage ./darwin.nix {
+    inherit
+      pname
+      version
+      src
+      meta
+      ;
+  }
+else
+  callPackage ./linux.nix {
+    inherit
+      pname
+      version
+      src
+      meta
+      polkitPolicyOwners
+      ;
+  }

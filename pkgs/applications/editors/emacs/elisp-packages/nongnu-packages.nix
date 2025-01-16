@@ -6,12 +6,13 @@ To update the list of packages from nongnu (ELPA),
 
 1. Run `./update-nongnu`.
 2. Check for evaluation errors:
-     env NIXPKGS_ALLOW_BROKEN=1 nix-instantiate ../../../../.. -A emacs.pkgs.nongnuPackages
+     # "../../../../../" points to the default.nix from root of Nixpkgs tree
+     env NIXPKGS_ALLOW_BROKEN=1 nix-instantiate ../../../../../ -A emacs.pkgs.nongnuPackages
 3. Run `git commit -m "nongnu-packages $(date -Idate)" -- nongnu-generated.nix`
 
 */
 
-{ lib, buildPackages }:
+{ lib, pkgs, buildPackages }:
 
 self: let
 
@@ -28,9 +29,11 @@ self: let
 
     super = imported;
 
-    overrides = {
-    };
+    commonOverrides = import ./nongnu-common-overrides.nix pkgs lib;
 
-  in super // overrides);
+    overrides = self: super: { };
+
+  in
+  let super' = super // (commonOverrides self super); in super' // (overrides self super'));
 
 in generateNongnu { }

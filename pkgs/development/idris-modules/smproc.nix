@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, contrib
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  contrib,
+  lib,
 }:
-build-idris-package  {
-  name = "smproc";
+build-idris-package {
+  pname = "smproc";
   version = "2018-02-08";
 
   idrisDeps = [ contrib ];

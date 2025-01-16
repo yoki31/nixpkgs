@@ -1,18 +1,14 @@
 { lib
 , stdenv
-, mkDerivation
 , fetchFromGitHub
 , cmake
 , pkg-config
 , perl
+, kdePackages
 , libtoxcore
 , libpthreadstubs
 , libXdmcp
 , libXScrnSaver
-, qtbase
-, qtsvg
-, qttools
-, qttranslations
 , ffmpeg
 , filter-audio
 , libexif
@@ -22,29 +18,27 @@
 , openal
 , pcre
 , qrencode
+, qt6
 , sqlcipher
-, AVFoundation
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "qtox";
-  version = "1.17.4";
+  version = "1.18.0";
 
   src = fetchFromGitHub {
-    owner = "qTox";
+    owner = "TokTok";
     repo = "qTox";
-    rev = "v${version}";
-    sha256 = "sha256-j1aAry4wjb4RResdu8PQzyVazvVxnxvZMoC59sO0frw=";
+    tag = "v${version}";
+    hash = "sha256-UgUlWeFrNoNR1ZwobfNLmDBn9/Aw4LUMeSgIfrq/uqo=";
   };
 
   buildInputs = [
+    kdePackages.sonnet
     libtoxcore
     libpthreadstubs
     libXdmcp
     libXScrnSaver
-    qtbase
-    qtsvg
-    qttranslations
     ffmpeg
     filter-audio
     libexif
@@ -54,22 +48,23 @@ mkDerivation rec {
     openal
     pcre
     qrencode
+    qt6.qtbase
+    qt6.qtsvg
     sqlcipher
-  ] ++ lib.optionals stdenv.isDarwin [ AVFoundation ];
+  ];
 
-  nativeBuildInputs = [ cmake pkg-config qttools ]
-    ++ lib.optionals stdenv.isDarwin [ perl ];
+  nativeBuildInputs = [ cmake pkg-config qt6.qttools qt6.wrapQtAppsHook ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [ perl ];
 
   cmakeFlags = [
     "-DGIT_DESCRIBE=v${version}"
-    "-DENABLE_STATUSNOTIFIER=False"
-    "-DENABLE_GTK_SYSTRAY=False"
-    "-DENABLE_APPINDICATOR=False"
     "-DTIMESTAMP=1"
   ];
 
   meta = with lib; {
+    broken = stdenv.hostPlatform.isDarwin;
     description = "Qt Tox client";
+    mainProgram = "qtox";
     homepage = "https://tox.chat";
     license = licenses.gpl3;
     maintainers = with maintainers; [ akaWolf peterhoeg ];

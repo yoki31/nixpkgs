@@ -1,39 +1,42 @@
-{ lib
-, mkDerivation
-, fetchFromGitLab
-, wafHook
-, pkg-config
-, cmake
-, qtbase
-, python3
-, qtwebengine
-, qtsvg
-, ncurses6
-, kio
-, kauth
-, kiconthemes
-, kconfigwidgets
-, kxmlgui
-, kcoreaddons
-, kconfig
-, kwidgetsaddons
-, ki18n
-, sonnet
-, kdelibs4support
+{
+  lib,
+  mkDerivation,
+  fetchFromGitLab,
+  wafHook,
+  pkg-config,
+  cmake,
+  qtbase,
+  python3,
+  qtwebengine,
+  qtsvg,
+  ncurses6,
+  kio,
+  kauth,
+  kiconthemes,
+  kconfigwidgets,
+  kxmlgui,
+  kcoreaddons,
+  kconfig,
+  kwidgetsaddons,
+  ki18n,
+  sonnet,
+  kdelibs4support,
 }:
 
 mkDerivation rec {
   pname = "semantik";
-  version = "1.2.7";
+  version = "1.2.10";
 
   src = fetchFromGitLab {
     owner = "ita1024";
     repo = "semantik";
     rev = "semantik-${version}";
-    sha256 = "sha256-aXOokji6fYTpaeI/IIV+5RnTE2Cm8X3WfADf4Uftkss=";
+    hash = "sha256-qJ6MGxnxXcibF2qXZ2w7Ey/aBIEIx8Gg0dM2PnCl09Y=";
   };
 
-  patches = [ ./qt5.patch ];
+  patches = [
+    ./qt5.patch
+  ];
 
   postPatch = ''
     echo "${lib.getDev qtwebengine}"
@@ -56,7 +59,14 @@ mkDerivation rec {
       --replace /usr/include/KF5/KDELibs4Support "${lib.getDev kdelibs4support}/include/KF5/KDELibs4Support"
   '';
 
-  nativeBuildInputs = [ (lib.getDev qtsvg) (lib.getLib qtsvg) python3 pkg-config wafHook cmake ];
+  nativeBuildInputs = [
+    (lib.getDev qtsvg)
+    (lib.getLib qtsvg)
+    python3
+    pkg-config
+    wafHook
+    cmake
+  ];
 
   buildInputs = [
     qtbase
@@ -81,10 +91,11 @@ mkDerivation rec {
   ];
 
   meta = with lib; {
-    description = "A mind-mapping application for KDE";
+    description = "Mind-mapping application for KDE";
     license = licenses.mit;
     homepage = "https://waf.io/semantik.html";
     maintainers = [ maintainers.shamilton ];
     platforms = platforms.linux;
+    mainProgram = "semantik";
   };
 }

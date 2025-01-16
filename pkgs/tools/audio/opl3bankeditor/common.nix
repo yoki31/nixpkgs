@@ -1,17 +1,24 @@
-{ pname, chip, version, sha256, extraPatches ? [] }:
+{
+  pname,
+  chip,
+  version,
+  sha256,
+  extraPatches ? [ ],
+}:
 
-{ mkDerivation
-, stdenv
-, lib
-, fetchFromGitHub
-, dos2unix
-, cmake
-, pkg-config
-, qttools
-, qtbase
-, qwt
-, rtaudio
-, rtmidi
+{
+  mkDerivation,
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  dos2unix,
+  cmake,
+  pkg-config,
+  qttools,
+  qtbase,
+  qwt6_1,
+  rtaudio,
+  rtmidi,
 }:
 
 let
@@ -43,7 +50,7 @@ mkDerivation rec {
 
   buildInputs = [
     qtbase
-    qwt
+    qwt6_1
     rtaudio
     rtmidi
   ];
@@ -52,14 +59,14 @@ mkDerivation rec {
     mkdir $out/{bin,Applications}
     mv "${binname}.app" $out/Applications/
 
-    install_name_tool -change {,${qwt}/lib/}libqwt.6.dylib "$out/Applications/${binname}.app/Contents/MacOS/${binname}"
+    install_name_tool -change {,${qwt6_1}/lib/}libqwt.6.dylib "$out/Applications/${binname}.app/Contents/MacOS/${binname}"
 
     ln -s "$out/Applications/${binname}.app/Contents/MacOS/${binname}" $out/bin/${mainProgram}
   '';
 
   meta = with lib; {
     inherit mainProgram;
-    description = "A small cross-platform editor of the ${chip} FM banks of different formats";
+    description = "Small cross-platform editor of the ${chip} FM banks of different formats";
     homepage = src.meta.homepage;
     license = licenses.gpl3Plus;
     platforms = platforms.all;

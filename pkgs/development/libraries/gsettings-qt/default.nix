@@ -1,7 +1,15 @@
-{ lib, stdenv, fetchFromGitLab, pkg-config
-, qmake, qtbase, qtdeclarative, wrapQtAppsHook
-, glib, gobject-introspection
-, genericUpdater, common-updater-scripts
+{
+  lib,
+  stdenv,
+  fetchFromGitLab,
+  pkg-config,
+  qmake,
+  qtbase,
+  qtdeclarative,
+  wrapQtAppsHook,
+  glib,
+  gobject-introspection,
+  gitUpdater,
 }:
 
 stdenv.mkDerivation rec {
@@ -55,10 +63,8 @@ stdenv.mkDerivation rec {
     done
   '';
 
-  passthru.updateScript = genericUpdater {
-    inherit pname version;
+  passthru.updateScript = gitUpdater {
     rev-prefix = "v";
-    versionLister = "${common-updater-scripts}/bin/list-git-tags ${src.meta.homepage}";
   };
 
   meta = with lib; {

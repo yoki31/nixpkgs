@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, bifunctors
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  bifunctors,
+  lib,
 }:
-build-idris-package  {
-  name = "logic";
+build-idris-package {
+  pname = "logic";
   version = "2016-12-02";
 
   idrisDeps = [ bifunctors ];

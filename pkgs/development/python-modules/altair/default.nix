@@ -1,64 +1,87 @@
-{ lib, buildPythonPackage, fetchPypi, isPy27
-, entrypoints
-, glibcLocales
-, ipython
-, jinja2
-, jsonschema
-, numpy
-, pandas
-, pytest
-, pythonOlder
-, recommonmark
-, six
-, sphinx
-, toolz
-, typing ? null
-, vega_datasets
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  ipython,
+  ipywidgets,
+  jinja2,
+  jsonschema,
+  narwhals,
+  numpy,
+  packaging,
+  pandas,
+  polars,
+  pytest-xdist,
+  pytestCheckHook,
+  pythonOlder,
+  toolz,
+  typing-extensions,
+  vega-datasets,
 }:
 
 buildPythonPackage rec {
   pname = "altair";
-  version = "4.1.0";
-  disabled = isPy27;
+  version = "5.4.1";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "0c99q5dy6f275yg1f137ird08wmwc1z8wmvjickkf2mvyka31p9y";
+  disabled = pythonOlder "3.8";
+
+  src = fetchFromGitHub {
+    owner = "altair-viz";
+    repo = "altair";
+    tag = "v${version}";
+    hash = "sha256-7C51ACaBuNtOSXqLpuCI5bnLyE9U64vNXlD4/msPq2k=";
   };
 
-  propagatedBuildInputs = [
-    entrypoints
-    jsonschema
-    numpy
-    pandas
-    six
-    toolz
-    jinja2
-  ] ++ lib.optionals (pythonOlder "3.5") [ typing ];
+  build-system = [ hatchling ];
 
-  checkInputs = [
-    glibcLocales
+  dependencies = [
+    jinja2
+    jsonschema
+    narwhals
+    numpy
+    packaging
+    pandas
+    toolz
+  ] ++ lib.optional (pythonOlder "3.14") typing-extensions;
+
+  nativeCheckInputs = [
     ipython
-    pytest
-    recommonmark
-    sphinx
-    vega_datasets
+    ipywidgets
+    polars
+    pytest-xdist
+    pytestCheckHook
+    vega-datasets
   ];
 
   pythonImportsCheck = [ "altair" ];
 
-  checkPhase = ''
-    export LANG=en_US.UTF-8
-    # histogram_responsive.py attempt network access, and cannot be disabled through pytest flags
-    rm altair/examples/histogram_responsive.py
-    pytest --doctest-modules altair
-  '';
+  disabledTests = [
+    # ValueError: Saving charts in 'svg' format requires the vl-convert-python or altair_saver package: see http://github.com/altair-viz/altair_saver/
+    "test_renderer_with_none_embed_options"
+  ];
+
+  disabledTestPaths = [
+    # Disabled because it requires internet connectivity
+    "tests/test_examples.py"
+    # TODO: Disabled because of missing altair_viewer package
+    "tests/vegalite/v5/test_api.py"
+    # avoid updating files and dependency on black
+    "tests/test_toplevel.py"
+    # require vl-convert package
+    "tests/utils/test_compiler.py"
+  ];
 
   meta = with lib; {
-    description = "A declarative statistical visualization library for Python.";
-    homepage = "https://github.com/altair-viz/altair";
+    description = "Declarative statistical visualization library for Python";
+    homepage = "https://altair-viz.github.io";
+    downloadPage = "https://github.com/altair-viz/altair";
+    changelog = "https://altair-viz.github.io/releases/changes.html";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ teh ];
-    platforms = platforms.unix;
+    maintainers = with maintainers; [
+      teh
+      vinetos
+    ];
   };
 }

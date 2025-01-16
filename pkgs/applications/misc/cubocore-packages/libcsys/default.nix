@@ -1,14 +1,22 @@
-{ mkDerivation, lib, fetchFromGitLab, udisks2, qtbase, cmake, ninja }:
+{
+  mkDerivation,
+  lib,
+  fetchFromGitLab,
+  udisks2,
+  qtbase,
+  cmake,
+  ninja,
+}:
 
 mkDerivation rec {
   pname = "libcsys";
-  version = "4.2.0";
+  version = "4.5.0";
 
   src = fetchFromGitLab {
     owner = "cubocore";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-9LH95uJJIn4FHfnikGi5UCI6nUNW+1cSZnJ/KpZDI5Y=";
+    hash = "sha256-1MHyx01w+dCeAeumcSXRBStgAec2yu1rLwaZaCXRgTc=";
   };
 
   nativeBuildInputs = [

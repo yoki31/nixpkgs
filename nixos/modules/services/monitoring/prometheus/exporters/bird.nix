@@ -1,15 +1,28 @@
-{ config, lib, pkgs, options }:
-
-with lib;
+{
+  config,
+  lib,
+  pkgs,
+  options,
+  ...
+}:
 
 let
   cfg = config.services.prometheus.exporters.bird;
+  inherit (lib)
+    mkOption
+    types
+    concatStringsSep
+    singleton
+    ;
 in
 {
   port = 9324;
   extraOpts = {
     birdVersion = mkOption {
-      type = types.enum [ 1 2 ];
+      type = types.enum [
+        1
+        2
+      ];
       default = 2;
       description = ''
         Specifies whether BIRD1 or BIRD2 is in use.
@@ -17,7 +30,7 @@ in
     };
     birdSocket = mkOption {
       type = types.path;
-      default = "/var/run/bird.ctl";
+      default = "/run/bird/bird.ctl";
       description = ''
         Path to BIRD2 (or BIRD1 v4) socket.
       '';

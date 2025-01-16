@@ -1,74 +1,78 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, six
-, decorator
-, nose
-, krb5Full
-, GSS
-, parameterized
-, shouldbe
-, cython
-, python
-, k5test
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  pythonOlder,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  setuptools,
+
+  # dependencies
+  decorator,
+
+  # native dependencies
+  GSS,
+  krb5-c, # C krb5 library, not PyPI krb5
+
+  # tests
+  parameterized,
+  k5test,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "gssapi";
-  version = "1.7.2";
+  version = "1.8.3";
+  pyproject = true;
+
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "pythongssapi";
     repo = "python-${pname}";
-    rev = "v${version}";
-    sha256 = "1xdcnm66b07m7chf04pp58p3khvy547hns1fw1xffd4n51kl42pp";
+    tag = "v${version}";
+    hash = "sha256-H1JfdvxJvX5dmC9aTqIOkjAqFEL44KoUXEhoYj2uRY8=";
   };
 
-  # It's used to locate headers
   postPatch = ''
     substituteInPlace setup.py \
-      --replace 'get_output(f"{kc} gssapi --prefix")' '"${lib.getDev krb5Full}"'
+      --replace 'get_output(f"{kc} gssapi --prefix")' '"${lib.getDev krb5-c}"'
   '';
 
-  nativeBuildInputs = [
+  env = lib.optionalAttrs (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) {
+    GSSAPI_SUPPORT_DETECT = "false";
+  };
+
+  build-system = [
     cython
-    krb5Full
+    krb5-c
+    setuptools
   ];
 
-  propagatedBuildInputs =  [
-    decorator
-    six
-  ];
+  dependencies = [ decorator ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    GSS
-  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ GSS ];
 
-  checkInputs = [
+  # k5test is marked as broken on darwin
+  doCheck = !stdenv.hostPlatform.isDarwin;
+
+  nativeCheckInputs = [
     k5test
-    nose
     parameterized
-    shouldbe
-    six
+    pytestCheckHook
   ];
 
-  doCheck = pythonOlder "3.8"  # `shouldbe` not available
-    && !stdenv.isDarwin;  # many failures on darwin
-
-  # skip tests which fail possibly due to be an upstream issue (see
-  # https://github.com/pythongssapi/python-gssapi/issues/220)
-  checkPhase = ''
-    # some tests don't respond to being disabled through nosetests -x
-    echo $'\ndel CredsTestCase.test_add_with_impersonate' >> gssapi/tests/test_high_level.py
-    echo $'\ndel TestBaseUtilities.test_acquire_creds_impersonate_name' >> gssapi/tests/test_raw.py
-    echo $'\ndel TestBaseUtilities.test_add_cred_impersonate_name' >> gssapi/tests/test_raw.py
-
-    export PYTHONPATH="$out/${python.sitePackages}:$PYTHONPATH"
-    ${python.interpreter} setup.py nosetests -e 'ext_test_\d.*'
+  preCheck = ''
+    mv gssapi/tests $TMPDIR/
+    pushd $TMPDIR
   '';
+
+  postCheck = ''
+    popd
+  '';
+
   pythonImportsCheck = [ "gssapi" ];
 
   meta = with lib; {

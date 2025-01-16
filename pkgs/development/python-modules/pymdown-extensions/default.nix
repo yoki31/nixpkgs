@@ -1,11 +1,18 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pytestCheckHook
-, markdown
-, pyyaml
-, pygments
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pytestCheckHook,
+  markdown,
+  pyyaml,
+  pygments,
+
+  # for passthru.tests
+  mkdocstrings,
+  mkdocs-material,
+  mkdocs-mermaid2-plugin,
+  hydrus,
 }:
 
 let
@@ -38,40 +45,53 @@ let
 in
 buildPythonPackage rec {
   pname = "pymdown-extensions";
-  version = "9.1";
-  format = "pyproject";
+  version = "10.13";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "facelessuser";
     repo = "pymdown-extensions";
-    rev = version;
-    sha256 = "sha256-II8Po8144h3wPFrzMbOB/qiCm2HseYrcZkyIZFGT+ek=";
+    tag = version;
+    hash = "sha256-uReUfJaGRQ4gMel5szTZJ5fsgJxeeNCy2I7zPf+rvts=";
   };
 
-  patches = [
-    # this patch is needed to allow tests to pass for later versions of the
-    # markdown dependency
-    #
-    # it can be removed after the next pymdown-extensions release
-    (fetchpatch {
-      url = "https://github.com/facelessuser/pymdown-extensions/commit/8ee5b5caec8f9373e025f50064585fb9d9b71f86.patch";
-      sha256 = "sha256-jTHNcsV0zL0EkSTSj8zCGXXtpUaLnNPldmL+krZj3Gk=";
-    })
+  build-system = [ hatchling ];
+
+  dependencies = [
+    markdown
+    pygments
   ];
 
-  propagatedBuildInputs = [ markdown pygments ];
-
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     pyyaml
   ];
 
+  disabledTests = [
+    # test artifact mismatch
+    "test_toc_tokens"
+    # Tests fails with AssertionError
+    "test_windows_root_conversion"
+  ];
+
   pythonImportsCheck = map (ext: "pymdownx.${ext}") extensions;
+
+  passthru.tests = {
+    inherit
+      mkdocstrings
+      mkdocs-material
+      mkdocs-mermaid2-plugin
+      hydrus
+      ;
+  };
 
   meta = with lib; {
     description = "Extensions for Python Markdown";
     homepage = "https://facelessuser.github.io/pymdown-extensions/";
-    license = with licenses; [ mit bsd2 ];
+    license = with licenses; [
+      mit
+      bsd2
+    ];
     maintainers = with maintainers; [ cpcloud ];
   };
 }

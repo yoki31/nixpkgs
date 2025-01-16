@@ -1,41 +1,65 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, pkg-config
-, openssl
-, installShellFiles
-, libiconv
-, nixosTests
-, Security
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  installShellFiles,
+  cmake,
+  git,
+  nixosTests,
+  Security,
+  Foundation,
+  Cocoa,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "starship";
-  version = "1.2.1";
+  version = "1.22.1";
 
   src = fetchFromGitHub {
     owner = "starship";
-    repo = pname;
+    repo = "starship";
     rev = "v${version}";
-    sha256 = "sha256-5MJA8eHo1enOHlLpAOF1iDvOHCS/Nw0sc84VWu9nApE=";
+    hash = "sha256-YoLi4wxBK9TFTtZRm+2N8HO5ZiC3V2GMqKFKKLHq++s=";
   };
 
-  nativeBuildInputs = [ installShellFiles ] ++ lib.optionals stdenv.isLinux [ pkg-config ];
+  nativeBuildInputs = [
+    installShellFiles
+    cmake
+  ];
 
-  buildInputs = lib.optionals stdenv.isLinux [ openssl ]
-    ++ lib.optionals stdenv.isDarwin [ libiconv Security ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+    Security
+    Foundation
+    Cocoa
+  ];
 
-  buildFeatures = lib.optional (!stdenv.isDarwin) "notify-rust";
+  NIX_LDFLAGS = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) [
+    "-framework"
+    "AppKit"
+  ];
 
-  postInstall = ''
-    for shell in bash fish zsh; do
-      STARSHIP_CACHE=$TMPDIR $out/bin/starship completions $shell > starship.$shell
-      installShellCompletion starship.$shell
-    done
+  # tries to access HOME only in aarch64-darwin environment when building mac-notification-sys
+  preBuild = lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) ''
+    export HOME=$TMPDIR
   '';
 
-  cargoSha256 = "sha256-DTQQFxj6stzlVzSdmv4J4Nsf8X/VMlwvfIumnuK0YDo=";
+  postInstall =
+    ''
+      presetdir=$out/share/starship/presets/
+      mkdir -p $presetdir
+      cp docs/public/presets/toml/*.toml $presetdir
+    ''
+    + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+      installShellCompletion --cmd starship \
+        --bash <($out/bin/starship completions bash) \
+        --fish <($out/bin/starship completions fish) \
+        --zsh <($out/bin/starship completions zsh)
+    '';
+
+  cargoHash = "sha256-Z/dMKExGemssCMqRzQ58xXxXvbFR84WX3KI2pC20omI=";
+
+  nativeCheckInputs = [ git ];
 
   preCheck = ''
     HOME=$TMPDIR
@@ -46,9 +70,15 @@ rustPlatform.buildRustPackage rec {
   };
 
   meta = with lib; {
-    description = "A minimal, blazing fast, and extremely customizable prompt for any shell";
+    description = "Minimal, blazing fast, and extremely customizable prompt for any shell";
     homepage = "https://starship.rs";
     license = licenses.isc;
-    maintainers = with maintainers; [ bbigras danth davidtwco Br1ght0ne Frostman marsam ];
+    maintainers = with maintainers; [
+      danth
+      davidtwco
+      Br1ght0ne
+      Frostman
+    ];
+    mainProgram = "starship";
   };
 }

@@ -1,21 +1,23 @@
-{ lib
-, aiofiles
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, isPy3k
-, libusb1
-, mock
-, pyasn1
-, pythonAtLeast
-, pycryptodome
-, pytestCheckHook
-, rsa
+{
+  lib,
+  pythonOlder,
+  aiofiles,
+  async-timeout,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  isPy3k,
+  libusb1,
+  mock,
+  pyasn1,
+  pycryptodome,
+  pytestCheckHook,
+  rsa,
 }:
 
 buildPythonPackage rec {
   pname = "adb-shell";
-  version = "0.4.2";
+  version = "0.4.4";
   format = "setuptools";
 
   disabled = !isPy3k;
@@ -24,33 +26,32 @@ buildPythonPackage rec {
     owner = "JeffLIrion";
     repo = "adb_shell";
     rev = "v${version}";
-    hash = "sha256-8tclSjmLlTAIeq6t7YPGtJwvSwtlzQ7sRAQatcQRzeY=";
+    hash = "sha256-pOkFUh3SEu/ch9R1lVoQn50nufQp8oI+D4/+Ybal5CA=";
   };
 
   propagatedBuildInputs = [
-    aiofiles
     cryptography
-    libusb1
     pyasn1
     rsa
   ];
 
-  checkInputs = [
+  optional-dependencies = {
+    async = [
+      aiofiles
+      async-timeout
+    ];
+    usb = [ libusb1 ];
+  };
+
+  doCheck = pythonOlder "3.12"; # FIXME: tests are broken on 3.13
+
+  nativeCheckInputs = [
     mock
     pycryptodome
     pytestCheckHook
-  ];
+  ] ++ lib.flatten (builtins.attrValues optional-dependencies);
 
-  disabledTests = lib.optionals (pythonAtLeast "3.10") [
-    # Tests are failing with Python 3.10
-    # https://github.com/JeffLIrion/adb_shell/issues/198
-    "TestAdbDeviceAsync"
-    "TestTcpTransportAsync"
-  ];
-
-  pythonImportsCheck = [
-    "adb_shell"
-  ];
+  pythonImportsCheck = [ "adb_shell" ];
 
   meta = with lib; {
     description = "Python implementation of ADB with shell and FileSync functionality";

@@ -1,6 +1,6 @@
 { lib
 , fetchFromGitHub
-, buildGo117Module
+, buildGoModule
 , coredns
 , installShellFiles
 , isFull ? false
@@ -9,27 +9,28 @@
 , components ? lib.optionals isFull [
     "kumactl"
     "kuma-cp"
-    "kuma-prometheus-sd"
     "kuma-dp"
   ]
 }:
 
-buildGo117Module rec {
-  inherit pname ;
-  version = "1.4.0";
-  tags = lib.optionals enableGateway ["gateway"];
-  vendorSha256 = "19rd450gmc51gmwa13991lbkva7r80d2camikkxmmgywyhrd06sf";
+buildGoModule rec {
+  inherit pname;
+  version = "2.9.2";
+  tags = lib.optionals enableGateway [ "gateway" ];
 
   src = fetchFromGitHub {
     owner = "kumahq";
     repo = "kuma";
     rev = version;
-    sha256 = "0agib3w5s270n5rhg54m3p4f21s5fhdrhaks374j7l21njs7xhqb";
+    hash = "sha256-c7ps2J15Hms1sM3e4uPvKZwYjhudEdw+220jNQemxag=";
   };
 
+  vendorHash = "sha256-++oL9OetEApRdfjypknPE3GFjLZbKexjtnySIOZJg8U=";
+
+  # no test files
   doCheck = false;
 
-  nativeBuildInputs = [installShellFiles] ++ lib.optionals isFull [coredns];
+  nativeBuildInputs = [ installShellFiles ] ++ lib.optionals isFull [ coredns ];
 
   preBuild = ''
     export HOME=$TMPDIR
@@ -59,6 +60,7 @@ buildGo117Module rec {
   meta = with lib; {
     description = "Service mesh controller";
     homepage = "https://kuma.io/";
+    changelog = "https://github.com/kumahq/kuma/blob/${version}/CHANGELOG.md";
     license = licenses.asl20;
     maintainers = with maintainers; [ zbioe ];
   };

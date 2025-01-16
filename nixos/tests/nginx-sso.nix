@@ -1,17 +1,19 @@
 import ./make-test-python.nix ({ pkgs, ... }: {
   name = "nginx-sso";
   meta = {
-    maintainers = with pkgs.lib.maintainers; [ delroth ];
+    maintainers = with pkgs.lib.maintainers; [ ambroisie ];
   };
 
-  machine = {
+  nodes.machine = {
     services.nginx.sso = {
       enable = true;
       configuration = {
         listen = { addr = "127.0.0.1"; port = 8080; };
 
         providers.token.tokens = {
-          myuser = "MyToken";
+          myuser = {
+            _secret = pkgs.writeText "secret-token" "MyToken";
+          };
         };
 
         acl = {

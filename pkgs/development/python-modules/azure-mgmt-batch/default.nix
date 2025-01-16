@@ -1,39 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, msrest
-, msrestazure
-, azure-common
-, azure-mgmt-core
-, azure-mgmt-nspkg
-, isPy3k
+{
+  lib,
+  azure-common,
+  azure-mgmt-core,
+  buildPythonPackage,
+  fetchPypi,
+  isodate,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-batch";
-  version = "16.0.0";
+  version = "18.0.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
-    inherit pname version;
-    extension = "zip";
-    sha256 = "1b3cecd6f16813879c6ac1a1bb01f9a6f2752cd1f9157eb04d5e41e4a89f3c34";
+    pname = "azure_mgmt_batch";
+    inherit version;
+    hash = "sha256-MF61H7P3OyCSfvR7O2+T6eMtyTmHbARflwvThsB7p5w=";
   };
 
+  nativeBuildInputs = [ setuptools ];
+
   propagatedBuildInputs = [
-    msrest
-    msrestazure
     azure-common
     azure-mgmt-core
-  ] ++ lib.optionals (!isPy3k) [
-    azure-mgmt-nspkg
+    isodate
   ];
 
-  # has no tests
+  # Tests are only available in mono repo
   doCheck = false;
+
+  pythonImportsCheck = [ "azure.mgmt.batch" ];
 
   meta = with lib; {
     description = "This is the Microsoft Azure Batch Management Client Library";
-    homepage = "https://github.com/Azure/azure-sdk-for-python";
+    homepage = "https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/batch/azure-mgmt-batch";
+    changelog = "https://github.com/Azure/azure-sdk-for-python/tree/azure-mgmt-batch_${version}/sdk/batch/azure-mgmt-batch";
     license = licenses.mit;
     maintainers = with maintainers; [ maxwilson ];
   };

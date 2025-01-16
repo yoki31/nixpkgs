@@ -1,18 +1,37 @@
-{ lib, stdenv, fetchFromGitHub, autoreconfHook, gmp, libffi }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  gmp,
+  libffi,
+  fetchpatch,
+}:
 
 stdenv.mkDerivation rec {
   pname = "polyml";
   version = "5.7.1";
 
-  prePatch = lib.optionalString stdenv.isDarwin ''
+  prePatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
     substituteInPlace configure.ac --replace stdc++ c++
   '';
 
-  patches = [ ./5.7-new-libffi-FFI_SYSV.patch ];
+  patches = [
+    ./5.7-new-libffi-FFI_SYSV.patch
 
-  buildInputs = [ libffi gmp ];
+    # glibc 2.34 compat
+    (fetchpatch {
+      url = "https://src.fedoraproject.org/rpms/polyml/raw/4d8868ca5a1ce3268f212599a321f8011c950496/f/polyml-pthread-stack-min.patch";
+      sha256 = "1h5ihg2sxld9ymrl3f2mpnbn2242ka1fsa0h4gl9h90kndvg6kby";
+    })
+  ];
 
-  nativeBuildInputs = lib.optional stdenv.isDarwin autoreconfHook;
+  buildInputs = [
+    libffi
+    gmp
+  ];
+
+  nativeBuildInputs = lib.optional stdenv.hostPlatform.isDarwin autoreconfHook;
 
   configureFlags = [
     "--enable-shared"
@@ -36,5 +55,7 @@ stdenv.mkDerivation rec {
     license = licenses.lgpl21;
     platforms = with platforms; (linux ++ darwin);
     maintainers = with maintainers; [ maggesi ];
+    # never built on aarch64-darwin since first introduction in nixpkgs
+    broken = stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64;
   };
 }

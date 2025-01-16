@@ -1,25 +1,29 @@
-{ lib
-, backoff
-, buildPythonPackage
-, fetchFromGitHub
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pythonOlder,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "yalesmartalarmclient";
-  version = "0.3.7";
+  version = "0.4.3";
+  pyproject = true;
+
+  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "domwillcode";
     repo = "yale-smart-alarm-client";
-    rev = "v${version}";
-    sha256 = "sha256-LcHXw4rZhQ942EhiGrRTf3MpT7G5OFSX8QbpxVjvTTo=";
+    tag = "v${version}";
+    hash = "sha256-a0rzPEixJXLBfN+kJRPYiJiHY1BKxg/mM14RO3RiVdA=";
   };
 
-  propagatedBuildInputs = [
-    backoff
-    requests
-  ];
+  build-system = [ poetry-core ];
+
+  dependencies = [ requests ];
 
   # Project has no tests
   doCheck = false;
@@ -29,6 +33,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python module to interface with Yale Smart Alarm Systems";
     homepage = "https://github.com/domwillcode/yale-smart-alarm-client";
+    changelog = "https://github.com/domwillcode/yale-smart-alarm-client/releases/tag/v${version}";
     license = with licenses; [ asl20 ];
     maintainers = with maintainers; [ fab ];
   };

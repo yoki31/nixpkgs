@@ -1,28 +1,50 @@
-{ fetchFromGitHub
-, lib
-, buildPythonPackage
-, git
-, pythonOlder
+{
+  fetchFromGitHub,
+  lib,
+  buildPythonPackage,
+  git,
+  which,
+  pythonOlder,
+  unittestCheckHook,
+  sphinxHook,
+  sphinx-argparse,
+  parameterized,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "nix-prefetch-github";
-  version = "5.0.1";
+  version = "7.1.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  outputs = [
+    "out"
+    "man"
+  ];
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "seppeljordan";
     repo = "nix-prefetch-github";
     rev = "v${version}";
-    sha256 = "DOmFfUCLJ+rnS4PznQaQrDrqjUU4DXmOrC9BspqKZVM=";
+    hash = "sha256-eQd/MNlnuzXzgFzvwUMchvHoIvkIrbpGKV7iknO14Cc=";
   };
 
-  checkInputs = [ git ];
+  nativeBuildInputs = [
+    sphinxHook
+    sphinx-argparse
+    setuptools
+  ];
+  nativeCheckInputs = [
+    unittestCheckHook
+    git
+    which
+    parameterized
+  ];
 
-  checkPhase = ''
-    python -m unittest discover
-  '';
+  sphinxBuilders = [ "man" ];
+  sphinxRoot = "docs";
+
   # ignore tests which are impure
   DISABLED_TESTS = "network requires_nix_build";
 

@@ -1,49 +1,88 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, freezegun
-, google-cloud-core
-, google-cloud-datacatalog
-, google-cloud-storage
-, google-cloud-testutils
-, google-resumable-media
-, ipython
-, mock
-, pandas
-, proto-plus
-, psutil
-, pyarrow
+{
+  lib,
+  buildPythonPackage,
+  db-dtypes,
+  fetchPypi,
+  freezegun,
+  google-api-core,
+  google-cloud-bigquery-storage,
+  google-cloud-core,
+  google-cloud-datacatalog,
+  google-cloud-storage,
+  google-cloud-testutils,
+  google-resumable-media,
+  grpcio,
+  ipython,
+  mock,
+  pandas,
+  proto-plus,
+  protobuf,
+  psutil,
+  pyarrow,
+  pytest-xdist,
+  pytestCheckHook,
+  python-dateutil,
+  pythonOlder,
+  requests,
+  setuptools,
+  tqdm,
 }:
 
 buildPythonPackage rec {
   pname = "google-cloud-bigquery";
-  version = "2.32.0";
-  format = "setuptools";
+  version = "3.27.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-84Y6xCk/CkWF5ERh2CuR+SOXIe8z/JV11AG02n3BJ70=";
+    pname = "google_cloud_bigquery";
+    inherit version;
+    hash = "sha256-N5xSQFTXsJD6VtDCJmLMbmRYpiKbZ1TA5xd+OnNCHSw=";
   };
 
-  propagatedBuildInputs = [
-    google-resumable-media
-    google-cloud-core
-    proto-plus
-    pyarrow
-  ];
+  build-system = [ setuptools ];
 
-  checkInputs = [
-    freezegun
-    google-cloud-testutils
-    ipython
-    mock
-    pandas
-    psutil
-    google-cloud-datacatalog
-    google-cloud-storage
-    pytestCheckHook
-  ];
+  dependencies = [
+    grpcio
+    google-api-core
+    google-cloud-core
+    google-cloud-bigquery-storage
+    google-resumable-media
+    proto-plus
+    protobuf
+    requests
+    python-dateutil
+  ] ++ google-api-core.optional-dependencies.grpc;
+
+  optional-dependencies = {
+    bqstorage = [
+      google-cloud-bigquery-storage
+      grpcio
+      pyarrow
+    ];
+    pandas = [
+      db-dtypes
+      pandas
+      pyarrow
+    ];
+    tqdm = [ tqdm ];
+    ipython = [ ipython ];
+  };
+
+  nativeCheckInputs =
+    [
+      freezegun
+      google-cloud-testutils
+      mock
+      psutil
+      google-cloud-datacatalog
+      google-cloud-storage
+      pytestCheckHook
+      pytest-xdist
+    ]
+    ++ optional-dependencies.pandas
+    ++ optional-dependencies.ipython;
 
   # prevent google directory from shadowing google imports
   preCheck = ''
@@ -54,12 +93,14 @@ buildPythonPackage rec {
     # requires credentials
     "test_bigquery_magic"
     "TestBigQuery"
+    "test_context_with_no_query_cache_from_context"
     "test_arrow_extension_types_same_for_storage_and_REST_APIs_894"
-    "test_query_retry_539"
     "test_list_rows_empty_table"
     "test_list_rows_page_size"
-    "test_list_rows_scalars"
+    "test_list_rows_range_csv"
+    "test_list_rows_range"
     "test_list_rows_scalars_extreme"
+    "test_list_rows_scalars"
     "test_dry_run"
     "test_session"
     # Mocking of _ensure_bqstorage_client fails
@@ -70,6 +111,19 @@ buildPythonPackage rec {
     "test_parameterized_types_round_trip"
     "test_structs"
     "test_table_snapshots"
+    "test__initiate_resumable_upload"
+    "test__initiate_resumable_upload_mtls"
+    "test__initiate_resumable_upload_with_retry"
+    "test_table_clones"
+    "test_context_with_default_connection"
+    "test_context_with_custom_connection"
+  ];
+
+  disabledTestPaths = [
+    # Tests require credentials
+    "tests/system/test_query.py"
+    "tests/system/test_job_retry.py"
+    "tests/system/test_pandas.py"
   ];
 
   pythonImportsCheck = [
@@ -80,7 +134,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Google BigQuery API client library";
     homepage = "https://github.com/googleapis/python-bigquery";
+    changelog = "https://github.com/googleapis/python-bigquery/blob/v${version}/CHANGELOG.md";
     license = licenses.asl20;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = [ ];
   };
 }

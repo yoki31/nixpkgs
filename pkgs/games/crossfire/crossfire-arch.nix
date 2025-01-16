@@ -1,14 +1,20 @@
-{ stdenv, lib, fetchsvn,
-  version, rev, sha256 }:
+{
+  stdenv,
+  lib,
+  fetchsvn,
+  version,
+  rev,
+  sha256,
+}:
 
 stdenv.mkDerivation rec {
   pname = "crossfire-arch";
-  version = "r${toString rev}";
+  version = rev;
 
   src = fetchsvn {
     url = "http://svn.code.sf.net/p/crossfire/code/arch/trunk/";
-    sha256 = sha256;
-    rev = rev;
+    inherit sha256;
+    rev = "r${rev}";
   };
 
   installPhase = ''
@@ -21,7 +27,7 @@ stdenv.mkDerivation rec {
     homepage = "http://crossfire.real-time.com/";
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    hydraPlatforms = [];
+    hydraPlatforms = [ ];
     maintainers = with maintainers; [ ToxicFrog ];
   };
 }

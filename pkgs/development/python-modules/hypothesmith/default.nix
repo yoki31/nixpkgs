@@ -1,24 +1,61 @@
-{ lib, buildPythonPackage, fetchPypi, hypothesis, lark-parser, libcst, black, parso, pytestCheckHook, pytest-cov, pytest-xdist }:
+{
+  lib,
+  black,
+  buildPythonPackage,
+  fetchPypi,
+  hypothesis,
+  lark,
+  libcst,
+  parso,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pytest-xdist,
+  pythonOlder,
+  setuptools,
+}:
 
 buildPythonPackage rec {
   pname = "hypothesmith";
-  version = "0.2.0";
+  version = "0.3.3";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0fb7b3fd03d76eddd4474b0561e1c2662457593a74cc300fd27e5409cd4d7922";
+    hash = "sha256-lsFIAtbI6F2JdSZBdoeNtUso0u2SH9v+3C5rjOPIFxY=";
   };
 
-  propagatedBuildInputs = [ hypothesis lark-parser libcst ];
+  build-system = [ setuptools ];
 
-  checkInputs = [ black parso pytestCheckHook pytest-cov pytest-xdist ];
+  dependencies = [
+    hypothesis
+    lark
+    libcst
+  ];
+
+  nativeCheckInputs = [
+    black
+    parso
+    pytestCheckHook
+    pytest-cov-stub
+    pytest-xdist
+  ];
+
+  disabledTests = [
+    # super slow
+    "test_source_code_from_libcst_node_type"
+    # https://github.com/Zac-HD/hypothesmith/issues/38
+    "test_black_autoformatter_from_grammar"
+  ];
 
   pythonImportsCheck = [ "hypothesmith" ];
 
   meta = with lib; {
     description = "Hypothesis strategies for generating Python programs, something like CSmith";
     homepage = "https://github.com/Zac-HD/hypothesmith";
+    changelog = "https://github.com/Zac-HD/hypothesmith/blob/master/CHANGELOG.md";
     license = licenses.mpl20;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = [ ];
   };
 }

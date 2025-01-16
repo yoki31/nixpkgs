@@ -1,21 +1,26 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pycoolmasternet-async";
-  version = "0.1.2";
+  version = "0.2.2";
+  pyproject = true;
 
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "OnFreund";
     repo = "pycoolmasternet-async";
-    rev = "v${version}";
-    sha256 = "0qzdk18iqrvin8p8zrydf69d6pii3j47j11h7ymmsx08gh7c176g";
+    tag = "v${version}";
+    hash = "sha256-MfWWy4C/G2w0Zb4C6iYbcfKciFtWctZ63K8lWaHuSnQ=";
   };
+
+  build-system = [ setuptools ];
 
   # no tests implemented
   doCheck = false;

@@ -1,47 +1,55 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, requests
-, stups-cli-support
-, stups-zign
-, pytest
-, pytest-cov
-, hypothesis
-, isPy3k
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  setuptools,
+  requests,
+  stups-cli-support,
+  stups-zign,
+  pytestCheckHook,
+  hypothesis,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "stups-pierone";
-  version = "1.1.45";
-  disabled = !isPy3k;
+  version = "1.1.51";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "zalando-stups";
     repo = "pierone-cli";
     rev = version;
-    sha256 = "1ggfizw27wpcagbbk15xpfrhq6b250cx4278b5d7y8s438g128cs";
+    hash = "sha256-OypGYHfiFUfcUndylM2N2WfPnfXXJ4gvWypUbltYAYE=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [ "stups-zign" ];
+
+  dependencies = [
     requests
     stups-cli-support
     stups-zign
   ];
 
-  preCheck = "
+  preCheck = ''
     export HOME=$TEMPDIR
-  ";
+  '';
 
-  checkInputs = [
-    pytest
-    pytest-cov
+  nativeCheckInputs = [
+    pytestCheckHook
     hypothesis
   ];
+
+  pythonImportsCheck = [ "pierone" ];
 
   meta = with lib; {
     description = "Convenient command line client for STUPS' Pier One Docker registry";
     homepage = "https://github.com/zalando-stups/pierone-cli";
     license = licenses.asl20;
-    maintainers = [ maintainers.mschuwalow ];
+    maintainers = with maintainers; [ mschuwalow ];
   };
 }

@@ -1,49 +1,61 @@
-{ lib
-, buildPythonPackage
-, chardet
-, fetchPypi
-, inflect
-, jinja2
-, jinja2_pluralize
-, pycodestyle
-, pyflakes
-, pygments
-, pylint
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  chardet,
+  fetchPypi,
+  jinja2,
+  jinja2-pluralize,
+  pluggy,
+  poetry-core,
+  pycodestyle,
+  pyflakes,
+  pygments,
+  pylint,
+  pytest-datadir,
+  pytest-mock,
+  pytestCheckHook,
+  pythonOlder,
+  tomli,
 }:
 
 buildPythonPackage rec {
   pname = "diff-cover";
-  version = "5.5.0";
-  disabled = pythonOlder "3.6";
+  version = "9.2.1";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     pname = "diff_cover";
     inherit version;
-    sha256 = "e2d36131c13f571d9f5c4109b9e08b71ed00757eabec0156de74e33f6ef5627f";
+    hash = "sha256-X6Wy1xzPXRbNIipxwsoGnZv1+j1lf2+sm02cIzeTI78=";
   };
+
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     chardet
-    inflect
     jinja2
-    jinja2_pluralize
+    jinja2-pluralize
+    pluggy
     pygments
+    tomli
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pycodestyle
     pyflakes
     pylint
+    pytest-datadir
     pytest-mock
     pytestCheckHook
   ];
 
   disabledTests = [
-    "added_file_pylint_console"
+    # Tests check for flake8
     "file_does_not_exist"
+    # Comparing console output doesn't work reliable
+    "console"
   ];
 
   pythonImportsCheck = [ "diff_cover" ];
@@ -51,6 +63,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Automatically find diff lines that need test coverage";
     homepage = "https://github.com/Bachmann1234/diff-cover";
+    changelog = "https://github.com/Bachmann1234/diff_cover/releases/tag/v${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ dzabraev ];
   };

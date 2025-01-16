@@ -1,38 +1,52 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, pythonOlder
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  pythonOlder,
 
-# propagates
-, cryptography
-, deprecated
-, hiredis
-, importlib-metadata
-, packaging
-, requests
+  # propagates
+  async-timeout,
+  deprecated,
+  importlib-metadata,
+  packaging,
+  typing-extensions,
+
+  # extras: hiredis
+  hiredis,
+
+  # extras: ocsp
+  cryptography,
+  pyopenssl,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "redis";
-  version = "4.1.0";
+  version = "5.2.0";
   format = "setuptools";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-IfCiO85weQkHbmuizgdsulm/9g0qsily4GR/32IP/kc=";
+    hash = "sha256-CxCHZlp3Gx/y4AOqW901TxWnDJ4l1afb+cciwWUop7A=";
   };
 
   propagatedBuildInputs = [
-    cryptography
+    async-timeout
     deprecated
-    hiredis
     packaging
-    requests
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
-  ];
+    typing-extensions
+  ] ++ lib.optionals (pythonOlder "3.8") [ importlib-metadata ];
+
+  optional-dependencies = {
+    hiredis = [ hiredis ];
+    ocsp = [
+      cryptography
+      pyopenssl
+      requests
+    ];
+  };
 
   pythonImportsCheck = [
     "redis"
@@ -44,12 +58,13 @@ buildPythonPackage rec {
     "redis.utils"
   ];
 
-  # tests require a running redis
+  # Tests require a running redis
   doCheck = false;
 
   meta = with lib; {
     description = "Python client for Redis key-value store";
-    homepage = "https://pypi.python.org/pypi/redis/";
+    homepage = "https://github.com/redis/redis-py";
+    changelog = "https://github.com/redis/redis-py/releases/tag/v${version}";
     license = with licenses; [ mit ];
   };
 }

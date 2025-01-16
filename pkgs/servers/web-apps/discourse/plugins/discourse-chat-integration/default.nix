@@ -1,12 +1,16 @@
-{ lib, mkDiscoursePlugin, fetchFromGitHub }:
+{
+  lib,
+  mkDiscoursePlugin,
+  fetchFromGitHub,
+}:
 
 mkDiscoursePlugin {
   name = "discourse-chat-integration";
   src = fetchFromGitHub {
     owner = "discourse";
     repo = "discourse-chat-integration";
-    rev = "45a16e2c40f9b79a351e52b905c7816ddbd29bb3";
-    sha256 = "sha256-cu9JhBB4ggsVzKlxe9x2WQVgwzwAA5U6OEKhbiRQACU=";
+    rev = "e19808d4ad3f7d16cd9b93f315ca586f694e6288";
+    sha256 = "sha256-EplT9bQFtOvraSkFpBpe7TyNLROsdcRXz79j4MNPEs4=";
   };
   meta = with lib; {
     homepage = "https://github.com/discourse/discourse-chat-integration";

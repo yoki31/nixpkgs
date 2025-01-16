@@ -1,17 +1,19 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, jinja2
-, ply
-, verilog
-, pytest-pythonpath
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  setuptools,
+  jinja2,
+  ply,
+  iverilog,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyverilog";
   version = "1.3.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
@@ -23,19 +25,25 @@ buildPythonPackage rec {
   patchPhase = ''
     # The path to Icarus can still be overridden via an environment variable at runtime.
     substituteInPlace pyverilog/vparser/preprocessor.py \
-      --replace "iverilog = 'iverilog'" "iverilog = '${verilog}/bin/iverilog'"
+      --replace-fail \
+        "iverilog = 'iverilog'" \
+        "iverilog = '${lib.getExe' iverilog "iverilog"}'"
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     jinja2
     ply
-    verilog
+    iverilog
   ];
 
-  checkInputs = [
-    pytest-pythonpath
-    pytestCheckHook
-  ];
+  preCheck = ''
+    substituteInPlace pytest.ini \
+      --replace-fail "python_paths" "pythonpath"
+  '';
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = with lib; {
     homepage = "https://github.com/PyHDI/Pyverilog";

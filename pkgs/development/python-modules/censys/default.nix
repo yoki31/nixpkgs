@@ -1,58 +1,65 @@
-{ lib
-, backoff
-, buildPythonPackage
-, fetchFromGitHub
-, importlib-metadata
-, parameterized
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, requests
-, requests-mock
-, responses
-, rich
+{
+  lib,
+  argcomplete,
+  backoff,
+  buildPythonPackage,
+  fetchFromGitHub,
+  importlib-metadata,
+  parameterized,
+  poetry-core,
+  pytest-mock,
+  pytestCheckHook,
+  pythonOlder,
+  requests,
+  requests-mock,
+  responses,
+  rich,
 }:
 
 buildPythonPackage rec {
   pname = "censys";
-  version = "2.1.1";
-  format = "pyproject";
+  version = "2.2.16";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "censys";
     repo = "censys-python";
-    rev = "v${version}";
-    sha256 = "sha256-S3sxYCGMg/O5ICr9z4NqjmpPCF7e5F8G2q2EX4bRN+8=";
+    tag = "v${version}";
+    hash = "sha256-OP7+jSt4xS71Kcjy5hFzeZ5rlTPtDx22rPr3UwjI5dk=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    substituteInPlace pytest.ini \
+      --replace-fail "--cov" ""
+  '';
+
+  build-system = [
     poetry-core
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    argcomplete
     backoff
     requests
     rich
     importlib-metadata
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     parameterized
+    pytest-mock
     pytestCheckHook
     requests-mock
     responses
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'backoff = "^1.11.1"' 'backoff = "*"' \
-      --replace 'requests = ">=2.26.0"' 'requests = "*"' \
-      --replace 'rich = "^10.16.2"' 'rich = "*"'
-    substituteInPlace pytest.ini \
-      --replace "--cov" ""
-  '';
+  pythonRelaxDeps = [
+    "backoff"
+    "requests"
+    "rich"
+  ];
 
   # The tests want to write a configuration file
   preCheck = ''
@@ -65,7 +72,9 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python API wrapper for the Censys Search Engine (censys.io)";
     homepage = "https://github.com/censys/censys-python";
+    changelog = "https://github.com/censys/censys-python/releases/tag/v${version}";
     license = with licenses; [ asl20 ];
     maintainers = with maintainers; [ fab ];
+    mainProgram = "censys";
   };
 }

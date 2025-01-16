@@ -1,31 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytest-mock
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, urllib3
+{
+  lib,
+  aenum,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pydantic,
+  pytest-mock,
+  pytestCheckHook,
+  python-dateutil,
+  pythonOlder,
+  urllib3,
 }:
 
 buildPythonPackage rec {
   pname = "amberelectric";
-  version = "1.0.3";
-  format = "setuptools";
+  version = "2.0.12";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "1hsbk2v7j1nsa083j28jb7b3rv76flan0g9wav97qccp1gjds5b0";
+  src = fetchFromGitHub {
+    owner = "madpilot";
+    repo = "amberelectric.py";
+    tag = "v${version}";
+    hash = "sha256-HTelfgOucyQINz34hT3kGxhJf68pxKbiO3L54nt5New=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
+    aenum
     urllib3
+    pydantic
     python-dateutil
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest-mock
     pytestCheckHook
   ];

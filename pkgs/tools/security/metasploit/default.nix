@@ -1,10 +1,12 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, makeWrapper
-, ruby
-, bundlerEnv
-, python3
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  makeWrapper,
+  ruby,
+  bundlerEnv,
+  testers,
+  python3,
 }:
 
 let
@@ -13,23 +15,31 @@ let
     name = "metasploit-bundler-env";
     gemdir = ./.;
   };
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "metasploit-framework";
-  version = "6.1.28";
+  version = "6.4.43";
 
   src = fetchFromGitHub {
     owner = "rapid7";
     repo = "metasploit-framework";
-    rev = version;
-    sha256 = "sha256-3l9yBnOejCVSo/zw46mGv3uBoArtyOPbjE1l8CoVNkg=";
+    tag = finalAttrs.version;
+    hash = "sha256-1zUt6nInDUIY97fBJa0dQ/hD4WZ1v5LXYdPQhnYKlYw=";
   };
 
-  nativeBuildInputs = [ makeWrapper ];
-  buildInputs = [ (python3.withPackages (ps: [ ps.requests ])) ];
+  nativeBuildInputs = [
+    makeWrapper
+  ];
+
+  buildInputs = [
+    (python3.withPackages (ps: [ ps.requests ]))
+  ];
 
   dontPatchELF = true; # stay away from exploit executables
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/{bin,share/msf}
 
     cp -r * $out/share/msf
@@ -49,17 +59,29 @@ in stdenv.mkDerivation rec {
 
     makeWrapper ${env}/bin/bundle $out/bin/msf-pattern_offset \
       --add-flags "exec ${ruby}/bin/ruby $out/share/msf/tools/exploit/pattern_offset.rb"
+
+    runHook postInstall
   '';
+
+  passthru.tests = {
+    msfconsole-version = testers.testVersion {
+      package = finalAttrs.finalPackage;
+      command = "HOME=/tmp msfconsole -q -x 'version;exit'";
+    };
+  };
 
   # run with: nix-shell maintainers/scripts/update.nix --argstr path metasploit
   passthru.updateScript = ./update.sh;
 
   meta = with lib; {
     description = "Metasploit Framework - a collection of exploits";
-    homepage = "https://github.com/rapid7/metasploit-framework/wiki";
+    homepage = "https://docs.metasploit.com/";
     platforms = platforms.unix;
     license = licenses.bsd3;
-    maintainers = with maintainers; [ fab makefu ];
+    maintainers = with maintainers; [
+      fab
+      makefu
+    ];
     mainProgram = "msfconsole";
   };
-}
+})

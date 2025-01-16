@@ -1,54 +1,65 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, blessed
-, keyring
-, keyrings-alt
-, lxml
-, measurement
-, python-dateutil
-, requests
-, six
-, rich
-, pytestCheckHook
-, mock
-, nose
+{
+  lib,
+  blessed,
+  browser-cookie3,
+  buildPythonPackage,
+  cloudscraper,
+  fetchPypi,
+  keyring,
+  keyrings-alt,
+  lxml,
+  measurement,
+  mock,
+  pytestCheckHook,
+  python-dateutil,
+  pythonOlder,
+  requests,
+  rich,
+  setuptools,
+  typing-extensions,
 }:
-
-# TODO: Define this package in "all-packages.nix" using "toPythonApplication".
-# This currently errors out, complaining about not being able to find "etree" from "lxml" even though "lxml" is defined in "propagatedBuildInputs".
 
 buildPythonPackage rec {
   pname = "myfitnesspal";
-  version = "1.16.6";
-  format = "setuptools";
+  version = "2.1.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "ac07369ede3ca4c6d673e02f2b9e0893b17d079f3085e36fdfdbdd1cba9f37db";
+    hash = "sha256-H9oKSio+2x4TDCB4YN5mmERUEeETLKahPlW3TDDFE/E=";
   };
+
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     blessed
+    browser-cookie3
+    cloudscraper
     keyring
     keyrings-alt
     lxml
     measurement
     python-dateutil
     requests
-    six
     rich
+    typing-extensions
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     mock
-    nose
     pytestCheckHook
   ];
 
   postPatch = ''
     # Remove overly restrictive version constraints
     sed -i -e "s/>=.*//" requirements.txt
+
+    # https://github.com/coddingtonbear/python-measurement/pull/8
+    substituteInPlace tests/test_client.py \
+      --replace-fail "Weight" "Mass" \
+      --replace-fail '"Mass"' '"Weight"'
   '';
 
   disabledTests = [
@@ -56,14 +67,13 @@ buildPythonPackage rec {
     "test_integration"
   ];
 
-  pythonImportsCheck = [
-    "myfitnesspal"
-  ];
+  pythonImportsCheck = [ "myfitnesspal" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to access meal tracking data stored in MyFitnessPal";
+    mainProgram = "myfitnesspal";
     homepage = "https://github.com/coddingtonbear/python-myfitnesspal";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bhipple ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bhipple ];
   };
 }

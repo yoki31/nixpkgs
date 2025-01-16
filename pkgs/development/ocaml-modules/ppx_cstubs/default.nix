@@ -1,47 +1,59 @@
-{ lib
-, fetchFromGitHub
-, buildDunePackage
-, bigarray-compat
-, containers
-, cppo
-, ctypes
-, integers
-, num
-, ppxlib
-, re
+{
+  lib,
+  ocaml,
+  fetchFromGitHub,
+  buildDunePackage,
+  bigarray-compat,
+  containers,
+  cppo,
+  ctypes,
+  integers,
+  num,
+  ppxlib,
+  re,
+  findlib,
 }:
 
-buildDunePackage rec {
-  pname = "ppx_cstubs";
-  version = "0.6.1.2";
+lib.throwIf (lib.versionAtLeast ocaml.version "5.2")
+  "ppx_cstubs is not available for OCaml ${ocaml.version}"
 
-  minimalOCamlVersion = "4.08";
+  buildDunePackage
+  rec {
+    pname = "ppx_cstubs";
+    version = "0.7.0";
 
-  useDune2 = true;
+    minimalOCamlVersion = "4.08";
 
-  src = fetchFromGitHub {
-    owner = "fdopen";
-    repo = "ppx_cstubs";
-    rev = version;
-    sha256 = "15cjb9ygnvp2kv85rrb7ncz7yalifyl7wd2hp2cl8r1qrpgi1d0w";
-  };
+    src = fetchFromGitHub {
+      owner = "fdopen";
+      repo = "ppx_cstubs";
+      rev = version;
+      hash = "sha256-qMmwRWCIfNyhCQYPKLiufnb57sTR3P+WInOqtPDywFs=";
+    };
 
-  buildInputs = [
-    bigarray-compat
-    containers
-    cppo
-    ctypes
-    integers
-    num
-    ppxlib
-    re
-  ];
+    patches = [ ./ppxlib.patch ];
 
-  meta = with lib; {
-    homepage = "https://github.com/fdopen/ppx_cstubs";
-    changelog = "https://github.com/fdopen/ppx_cstubs/raw/${version}/CHANGES.md";
-    description = "Preprocessor for easier stub generation with ocaml-ctypes";
-    license = licenses.lgpl21Plus;
-    maintainers = [ maintainers.osener ];
-  };
-}
+    nativeBuildInputs = [ cppo ];
+
+    buildInputs = [
+      bigarray-compat
+      containers
+      findlib
+      integers
+      num
+      ppxlib
+      re
+    ];
+
+    propagatedBuildInputs = [
+      ctypes
+    ];
+
+    meta = with lib; {
+      homepage = "https://github.com/fdopen/ppx_cstubs";
+      changelog = "https://github.com/fdopen/ppx_cstubs/raw/${version}/CHANGES.md";
+      description = "Preprocessor for easier stub generation with ocaml-ctypes";
+      license = licenses.lgpl21Plus;
+      maintainers = [ maintainers.osener ];
+    };
+  }

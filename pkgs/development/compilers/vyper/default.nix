@@ -1,46 +1,88 @@
-{ lib, buildPythonPackage, fetchPypi, writeText, asttokens
-, pycryptodome, pytest-xdist, pytest-cov, recommonmark, semantic-version, sphinx
-, sphinx_rtd_theme, pytest-runner, setuptools-scm }:
+{
+  lib,
+  asttokens,
+  buildPythonPackage,
+  cbor2,
+  fetchPypi,
+  git,
+  importlib-metadata,
+  packaging,
+  pycryptodome,
+  pythonOlder,
+  recommonmark,
+  setuptools-scm,
+  sphinx,
+  sphinx-rtd-theme,
+  writeText,
+}:
 
 let
   sample-contract = writeText "example.vy" ''
     count: int128
 
-    @external
+    @deploy
     def __init__(foo: address):
         self.count = 1
   '';
-in
 
+in
 buildPythonPackage rec {
   pname = "vyper";
-  version = "0.3.1";
+  version = "0.4.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.10";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-fXug5v3zstz19uexMWokHBVsfcl2ZCdIOIXKeLVyh/Q=";
+    hash = "sha256-locUXGoL9C3lLpIgLOmpE2SNPGV6yOXPubNaEA3EfjQ=";
   };
 
-  nativeBuildInputs = [ pytest-runner setuptools-scm ];
+  postPatch = ''
+    # pythonRelaxDeps doesn't work
+    substituteInPlace setup.py \
+      --replace-fail "setuptools_scm>=7.1.0,<8.0.0" "setuptools_scm>=7.1.0" \
+      --replace-fail '"pytest-runner",' ""
+  '';
+
+  nativeBuildInputs = [
+    # Git is used in setup.py to compute version information during building
+    # ever since https://github.com/vyperlang/vyper/pull/2816
+    git
+
+    setuptools-scm
+  ];
+
+  pythonRelaxDeps = [
+    "asttokens"
+    "packaging"
+  ];
 
   propagatedBuildInputs = [
     asttokens
+    cbor2
+    importlib-metadata
+    packaging
     pycryptodome
-    semantic-version
 
     # docs
     recommonmark
     sphinx
-    sphinx_rtd_theme
+    sphinx-rtd-theme
   ];
 
   checkPhase = ''
     $out/bin/vyper "${sample-contract}"
   '';
 
+  pythonImportsCheck = [
+    "vyper"
+  ];
+
   meta = with lib; {
     description = "Pythonic Smart Contract Language for the EVM";
     homepage = "https://github.com/vyperlang/vyper";
+    changelog = "https://github.com/vyperlang/vyper/releases/tag/v${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ siraben ];
   };

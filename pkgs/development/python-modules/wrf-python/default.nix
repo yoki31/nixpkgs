@@ -1,43 +1,60 @@
-{lib, fetchFromGitHub, pythonOlder, buildPythonPackage, gfortran, mock, xarray, wrapt, numpy, netcdf4, setuptools}:
+{
+  lib,
+  fetchFromGitHub,
+  pythonOlder,
+  buildPythonPackage,
+  basemap,
+  gfortran,
+  netcdf4,
+  numpy,
+  python,
+  setuptools,
+  xarray,
+  wrapt,
+}:
 
 buildPythonPackage rec {
   pname = "wrf-python";
-  version = "1.3.2.6";
+  version = "1.3.4.1";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "NCAR";
     repo = "wrf-python";
-    rev = version;
-    sha256 = "046kflai71r7xrmdw6jn0ifn5656wj9gpnwlgxkx430dgk7zbc2y";
+    tag = "v${version}";
+    hash = "sha256-4iIs/M9fzGJsnKCDSl09OTUoh7j6REBXuutE5uXFe3k=";
   };
 
+  nativeBuildInputs = [ gfortran ];
+
   propagatedBuildInputs = [
-    wrapt
+    basemap
     numpy
     setuptools
     xarray
+    wrapt
   ];
 
-  nativeBuildInputs = [
-    gfortran
-  ];
+  nativeCheckInputs = [ netcdf4 ];
 
-  checkInputs = [
-    netcdf4
-  ] ++ lib.optional (pythonOlder "3.3") mock;
-
-  doCheck = true;
   checkPhase = ''
     runHook preCheck
     cd ./test/ci_tests
-    python utests.py
+    ${python.interpreter} utests.py
     runHook postCheck
   '';
 
-  meta = {
+  pythonImportsCheck = [ "wrf" ];
+
+  meta = with lib; {
+    # `ModuleNotFoundError: No module named 'distutils.msvccompiler'` on Python 3.11
+    # `ModuleNotFoundError: No module named 'numpy.distutils'` on Python 3.12
+    broken = true;
     description = "WRF postprocessing library for Python";
     homepage = "http://wrf-python.rtfd.org";
-    license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ mhaselsteiner ];
+    license = licenses.asl20;
+    maintainers = with maintainers; [ mhaselsteiner ];
   };
 }

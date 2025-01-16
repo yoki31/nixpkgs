@@ -1,62 +1,100 @@
-{ stable, branch, version, sha256Hash, mkOverride, commonOverrides }:
+{
+  channel,
+  version,
+  hash,
+}:
 
-{ lib, python3, fetchFromGitHub, packageOverrides ? self: super: {}
- }:
+{
+  fetchFromGitHub,
+  gns3-server,
+  lib,
+  nixosTests,
+  pkgsStatic,
+  python3Packages,
+  stdenv,
+  testers,
+  util-linux,
+}:
 
-let
-  defaultOverrides = commonOverrides ++ [
-    (self: super: {
-      aiofiles = super.aiofiles.overridePythonAttrs (oldAttrs: rec {
-        pname = "aiofiles";
-        version = "0.7.0";
-        src = fetchFromGitHub {
-          owner = "Tinche";
-          repo = pname;
-          rev = "v${version}";
-          sha256 = "sha256-njQ7eRYJO+dUrwO5pZwKHXn9nVSGYcEhwhs3x5BMc28=";
-        };
-        doCheck = false;
-      });
-    })
-  ];
-
-  python = python3.override {
-    packageOverrides = lib.foldr lib.composeExtensions (self: super: { }) ([ packageOverrides ] ++ defaultOverrides);
-  };
-in python.pkgs.buildPythonPackage {
+python3Packages.buildPythonApplication {
   pname = "gns3-server";
   inherit version;
 
   src = fetchFromGitHub {
+    inherit hash;
     owner = "GNS3";
     repo = "gns3-server";
-    rev = "v${version}";
-    sha256 = sha256Hash;
+    rev = "refs/tags/v${version}";
   };
 
-  postPatch = ''
-    substituteInPlace requirements.txt \
-      --replace "aiohttp==3.7.4" "aiohttp>=3.7.4" \
-      --replace "Jinja2==3.0.1" "Jinja2>=3.0.1" \
-      --replace "sentry-sdk==1.3.1" "sentry-sdk>=1.3.1" \
-      --replace "async-timeout==3.0.1" "async-timeout>=3.0.1" \
+  # GNS3 2.3.26 requires a static BusyBox for the Docker integration
+  prePatch = ''
+    cp ${pkgsStatic.busybox}/bin/busybox gns3server/compute/docker/resources/bin/busybox
   '';
 
-  propagatedBuildInputs = with python.pkgs; [
-    aiohttp-cors yarl aiohttp multidict setuptools
-    jinja2 psutil zipstream sentry-sdk jsonschema distro async_generator aiofiles
-    prompt-toolkit py-cpuinfo
+  build-system = with python3Packages; [ setuptools ];
+
+  dependencies =
+    with python3Packages;
+    [
+      aiofiles
+      aiohttp
+      aiohttp-cors
+      async-generator
+      distro
+      jinja2
+      jsonschema
+      multidict
+      platformdirs
+      prompt-toolkit
+      psutil
+      py-cpuinfo
+      sentry-sdk
+      truststore
+      yarl
+    ]
+    ++ lib.optionals (pythonOlder "3.9") [
+      importlib-resources
+    ];
+
+  postInstall = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
+    rm $out/bin/gns3loopback
+  '';
+
+  # util-linux (script program) is required for Docker support
+  makeWrapperArgs = [ "--suffix PATH : ${lib.makeBinPath [ util-linux ]}" ];
+
+  doCheck = true;
+
+  # Otherwise tests will fail to create directory
+  # Permission denied: '/homeless-shelter'
+  preCheck = ''
+    export HOME=$(mktemp -d)
+  '';
+
+  checkInputs = with python3Packages; [
+    pytest-aiohttp
+    pytest-rerunfailures
+    pytestCheckHook
   ];
 
-  # Requires network access
-  doCheck = false;
+  pytestFlagsArray = [
+    # fails on ofborg because of lack of cpu vendor information
+    "--deselect=tests/controller/gns3vm/test_virtualbox_gns3_vm.py::test_cpu_vendor_id"
+    # Rerun failed tests up to three times (flaky tests)
+    "--reruns 3"
+  ];
 
-  postInstall = ''
-    rm $out/bin/gns3loopback # For Windows only
-  '';
+  passthru.tests = {
+    inherit (nixosTests) gns3-server;
+    version = testers.testVersion {
+      package = gns3-server;
+      command = "${lib.getExe gns3-server} --version";
+    };
+  };
 
-  meta = with lib; {
-    description = "Graphical Network Simulator 3 server (${branch} release)";
+  meta = {
+    description = "Graphical Network Simulator 3 server (${channel} release)";
     longDescription = ''
       The GNS3 server manages emulators such as Dynamips, VirtualBox or
       Qemu/KVM. Clients like the GNS3 GUI control the server using a HTTP REST
@@ -64,8 +102,9 @@ in python.pkgs.buildPythonPackage {
     '';
     homepage = "https://www.gns3.com/";
     changelog = "https://github.com/GNS3/gns3-server/releases/tag/v${version}";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ anthonyroussel ];
+    mainProgram = "gns3server";
   };
 }

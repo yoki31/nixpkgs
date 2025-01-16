@@ -1,61 +1,72 @@
-{ buildPythonPackage
-, fetchPypi
-, pytest
-, six
-, tqdm
-, pyyaml
-, docopt
-, requests
-, jsonpatch
-, args
-, schema
-, responses
-, backports_csv
-, isPy3k
-, lib
-, glibcLocales
-, setuptools
-, urllib3
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  jsonpatch,
+  schema,
+  responses,
+  setuptools,
+  tqdm,
+  urllib3,
+  pythonOlder,
+  importlib-metadata,
 }:
 
 buildPythonPackage rec {
   pname = "internetarchive";
-  version = "2.3.0";
+  version = "5.1.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "fa89dc4be3e0a0aee24810a4a754e24adfd07edf710c645b4f642422c6078b8d";
+  disabled = pythonOlder "3.9";
+
+  src = fetchFromGitHub {
+    owner = "jjjake";
+    repo = "internetarchive";
+    tag = "v${version}";
+    hash = "sha256-HwE8oEd5ss8HkpuQuUwdfzENYHn2z/QmzvhRIBvo1qA=";
   };
 
-  propagatedBuildInputs = [
-    six
+  build-system = [ setuptools ];
+
+  dependencies = [
     tqdm
-    pyyaml
-    docopt
     requests
     jsonpatch
-    args
     schema
-    setuptools
     urllib3
-  ] ++ lib.optionals (!isPy3k) [ backports_csv ];
+  ] ++ lib.optionals (pythonOlder "3.10") [ importlib-metadata ];
 
-  checkInputs = [ pytest responses glibcLocales ];
+  nativeCheckInputs = [
+    responses
+    pytestCheckHook
+  ];
 
-  # tests depend on network
-  doCheck = false;
+  disabledTests = [
+    # Tests require network access
+    "test_get_item_with_kwargs"
+    "test_upload"
+    "test_upload_metadata"
+    "test_upload_queue_derive"
+    "test_upload_validate_identifie"
+    "test_upload_validate_identifier"
+  ];
 
-  checkPhase = ''
-    LC_ALL=en_US.utf-8 pytest tests
-  '';
+  disabledTestPaths = [
+    # Tests require network access
+    "tests/cli/test_ia.py"
+    "tests/cli/test_ia_download.py"
+  ];
 
   pythonImportsCheck = [ "internetarchive" ];
 
   meta = with lib; {
-    description = "A Python and Command-Line Interface to Archive.org";
+    description = "Python and Command-Line Interface to Archive.org";
     homepage = "https://github.com/jjjake/internetarchive";
-    changelog = "https://github.com/jjjake/internetarchive/raw/v${version}/HISTORY.rst";
+    changelog = "https://github.com/jjjake/internetarchive/blob/v${version}/HISTORY.rst";
     license = licenses.agpl3Plus;
-    maintainers = [ maintainers.marsam ];
+    maintainers = [ ];
+    mainProgram = "ia";
   };
 }

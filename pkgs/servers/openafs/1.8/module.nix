@@ -13,11 +13,9 @@
 , libkrb5
 }:
 
-with (import ./srcs.nix {
-  inherit fetchurl;
-});
-
 let
+  inherit (import ./srcs.nix { inherit fetchurl; }) src version;
+
   modDestDir = "$out/lib/modules/${kernel.modDirVersion}/extra/openafs";
   kernelBuildDir = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build";
 
@@ -26,6 +24,8 @@ stdenv.mkDerivation {
   pname = "openafs";
   version = "${version}-${kernel.modDirVersion}";
   inherit src;
+
+  patches = [ ];
 
   nativeBuildInputs = [ autoconf automake flex libtool_2 perl which bison ]
     ++ kernel.moduleBuildDependencies;
@@ -39,7 +39,6 @@ stdenv.mkDerivation {
     "--sysconfdir=/etc"
     "--localstatedir=/var"
     "--with-gssapi"
-    "--disable-linux-d_splice-alias-extra-iput"
   ];
 
   preConfigure = ''
@@ -69,7 +68,7 @@ stdenv.mkDerivation {
     homepage = "https://www.openafs.org";
     license = licenses.ipl10;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ maggesi spacefrogg ];
-    broken = versionOlder kernel.version "3.18" || kernel.isHardened;
+    maintainers = with maintainers; [ andersk maggesi spacefrogg ];
+    broken = kernel.isHardened;
   };
 }

@@ -1,44 +1,87 @@
-{ lib
-, bokeh
-, buildPythonPackage
-, colorcet
-, fetchPypi
-, holoviews
-, pandas
-, pythonImportsCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+
+  # build-system
+  setuptools-scm,
+
+  # dependencies
+  bokeh,
+  colorcet,
+  holoviews,
+  pandas,
+
+  # tests
+  pytestCheckHook,
+  dask,
+  xarray,
+  bokeh-sampledata,
+  parameterized,
+  selenium,
+  matplotlib,
+  scipy,
+  plotly,
 }:
 
 buildPythonPackage rec {
   pname = "hvplot";
-  version = "0.7.3";
+  version = "0.11.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "74b269c6e118dd6f7d2a4039e91f16a193638f4119b4358dc6dbd58a2e71e432";
+    hash = "sha256-t60fLxxwXkfiayLInBFxGoT3d0+qq6t1a0Xo0eAKYBA=";
   };
 
-  nativeBuildInputs = [
-    pythonImportsCheckHook
+  build-system = [
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     bokeh
     colorcet
     holoviews
     pandas
   ];
 
-  # Many tests require a network connection
-  doCheck = false;
-
-  pythonImportsCheck = [
-    "hvplot.pandas"
+  nativeCheckInputs = [
+    pytestCheckHook
+    dask
+    xarray
+    bokeh-sampledata
+    parameterized
+    selenium
+    matplotlib
+    scipy
+    plotly
   ];
 
-  meta = with lib; {
-    description = "A high-level plotting API for the PyData ecosystem built on HoloViews";
+  disabledTestPaths = [
+    # All of the following below require xarray.tutorial files that require
+    # downloading files from the internet (not possible in the sandbox).
+    "hvplot/tests/testgeo.py"
+    "hvplot/tests/testinteractive.py"
+    "hvplot/tests/testui.py"
+    "hvplot/tests/testutil.py"
+  ];
+
+  # need to set MPLBACKEND=agg for headless matplotlib for darwin
+  # https://github.com/matplotlib/matplotlib/issues/26292
+  preCheck = ''
+    export MPLBACKEND=agg
+  '';
+
+  pythonImportsCheck = [ "hvplot.pandas" ];
+
+  meta = {
+    description = "High-level plotting API for the PyData ecosystem built on HoloViews";
     homepage = "https://hvplot.pyviz.org";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ costrouc ];
+    changelog = "https://github.com/holoviz/hvplot/releases/tag/v${version}";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

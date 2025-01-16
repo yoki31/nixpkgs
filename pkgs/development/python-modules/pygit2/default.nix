@@ -1,54 +1,80 @@
-{ stdenv, lib, buildPythonPackage, fetchPypi, isPyPy, isPy3k, libgit2, cached-property, pytestCheckHook, cffi, cacert }:
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  cacert,
+  cached-property,
+  cffi,
+  fetchPypi,
+  fetchpatch,
+  isPyPy,
+  libgit2,
+  pycparser,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+}:
 
 buildPythonPackage rec {
   pname = "pygit2";
-  version = "1.8.0";
+  version = "1.16.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-bixc/1qh5D9DEDSAdhFS9cXWvvQPXB9QyHWKbonmbLY=";
+    hash = "sha256-eymmeWuqFfyJ1EOsjVF3VBHZseWwbcQNRYxWyFdrSKI=";
   };
 
-  preConfigure = lib.optionalString stdenv.isDarwin ''
+  patches = [
+    # fix for GCC 14
+    (fetchpatch {
+      url = "https://github.com/libgit2/pygit2/commit/eba710e45bb40e18641c6531394bb46631e7f295.patch";
+      hash = "sha256-GFFzGVd/9+AcwicwOtBghhonijMp08svXTUZ/4/LmtI=";
+    })
+    # temp fix for Python 3.13 until next release after 1.16.0
+    (fetchpatch {
+      url = "https://github.com/libgit2/pygit2/commit/7f143e1c5beec01ec3429aa4db12435ac02977d3.patch";
+      hash = "sha256-2SiFFPWVVo9urKRu64AejjTZMoXo2r+v1OwEIF+AzNo=";
+    })
+  ];
+
+  preConfigure = lib.optionalString stdenv.hostPlatform.isDarwin ''
     export DYLD_LIBRARY_PATH="${libgit2}/lib"
   '';
 
-  buildInputs = [
-    libgit2
-  ];
+  nativeBuildInputs = [ setuptools ];
+
+  buildInputs = [ libgit2 ];
 
   propagatedBuildInputs = [
     cached-property
-  ] ++ lib.optional (!isPyPy) cffi;
+    pycparser
+  ] ++ lib.optionals (!isPyPy) [ cffi ];
 
-  propagatedNativeBuildInputs = lib.optional (!isPyPy) cffi;
+  propagatedNativeBuildInputs = lib.optionals (!isPyPy) [ cffi ];
 
-  checkInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  preCheck = ''
-    # disable tests that require networking
-    rm test/test_repository.py
-    rm test/test_credentials.py
-    rm test/test_submodule.py
-  '';
+  disabledTestPaths = [
+    # Disable tests that require networking
+    "test/test_repository.py"
+    "test/test_credentials.py"
+    "test/test_submodule.py"
+  ];
 
   # Tests require certificates
   # https://github.com/NixOS/nixpkgs/pull/72544#issuecomment-582674047
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 
-  # setup.py check is broken
-  # https://github.com/libgit2/pygit2/issues/868
-  dontUseSetuptoolsCheck = true;
-
-  # TODO: Test collection is failing
-  # https://github.com/NixOS/nixpkgs/pull/72544#issuecomment-582681068
-  doCheck = false;
-
-  disabled = !isPy3k;
+  pythonImportsCheck = [ "pygit2" ];
 
   meta = with lib; {
-    description = "A set of Python bindings to the libgit2 shared library";
-    homepage = "https://pypi.python.org/pypi/pygit2";
-    license = licenses.gpl2;
+    description = "Set of Python bindings to the libgit2 shared library";
+    homepage = "https://github.com/libgit2/pygit2";
+    changelog = "https://github.com/libgit2/pygit2/blob/v${version}/CHANGELOG.md";
+    license = licenses.gpl2Only;
+    maintainers = [ ];
   };
 }

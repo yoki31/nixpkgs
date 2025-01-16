@@ -1,47 +1,65 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools-scm
-, setuptools
-, pytestCheckHook
-, freezegun
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  freezegun,
+  gettext,
+  pytestCheckHook,
+  pythonOlder,
+  python,
+  hatch-vcs,
+  hatchling,
 }:
 
 buildPythonPackage rec {
-  version = "3.13.1";
   pname = "humanize";
+  version = "4.11.0";
   format = "pyproject";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
-    owner = "jmoiron";
+    owner = "python-humanize";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-lgGBvYb3ciqETBOR31gxQVD7YyopTtmr++nCwvm63Zs=";
+    tag = version;
+    hash = "sha256-C6u7t7RedInHJtN4yHli22Wc7llnrxn4YeKssyQ+hS4=";
   };
 
-  SETUPTOOLS_SCM_PRETEND_VERSION = version;
-
   nativeBuildInputs = [
-    setuptools-scm
+    hatch-vcs
+    hatchling
+    gettext
   ];
 
-  propagatedBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    # Remove dependency on pytest-cov
+    substituteInPlace pyproject.toml --replace-fail \
+      '"ignore:sys.monitoring isn'"'"'t available, using default core:coverage.exceptions.CoverageWarning",' ""
+  '';
 
-  checkInputs = [
+  postBuild = ''
+    scripts/generate-translation-binaries.sh
+  '';
+
+  postInstall = ''
+    cp -r 'src/humanize/locale' "$out/${python.sitePackages}/humanize/"
+  '';
+
+  nativeCheckInputs = [
     freezegun
     pytestCheckHook
   ];
 
+  pythonImportsCheck = [ "humanize" ];
+
   meta = with lib; {
     description = "Python humanize utilities";
-    homepage = "https://github.com/jmoiron/humanize";
+    homepage = "https://github.com/python-humanize/humanize";
+    changelog = "https://github.com/python-humanize/humanize/releases/tag/${version}";
     license = licenses.mit;
-    maintainers = with maintainers; [ rmcgibbo ];
+    maintainers = with maintainers; [
+      rmcgibbo
+      Luflosi
+    ];
   };
-
 }

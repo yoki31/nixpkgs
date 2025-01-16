@@ -1,20 +1,59 @@
-{ lib, fetchPypi, buildPythonPackage, hidapi
-, pycrypto, pillow, protobuf, future, ecpy, python-u2flib-host, pycryptodomex
-, websocket-client
+{
+  lib,
+  stdenv,
+  bleak,
+  buildPythonPackage,
+  ecpy,
+  fetchPypi,
+  future,
+  hidapi,
+  nfcpy,
+  pillow,
+  protobuf,
+  pycrypto,
+  pycryptodomex,
+  pyelftools,
+  python-gnupg,
+  python-u2flib-host,
+  pythonOlder,
+  setuptools,
+  setuptools-scm,
+  websocket-client,
 }:
 
 buildPythonPackage rec {
   pname = "ledgerblue";
-  version = "0.1.41";
+  version = "0.1.54";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "7246a1a0442a63aff0b5de2796d306f0033e1937b3c9b9c2a92c9101cde4fe8d";
+    hash = "sha256-Hn99ST6RnER6XI6+rqA3O9/aC+whYoTOzeoHGF/fFz4=";
   };
 
-  propagatedBuildInputs = [
-    hidapi pycrypto pillow protobuf future ecpy python-u2flib-host pycryptodomex websocket-client
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
+
+  pythonRelaxDeps = [ "protobuf" ];
+
+  dependencies = [
+    ecpy
+    future
+    hidapi
+    nfcpy
+    pillow
+    protobuf
+    pycrypto
+    pycryptodomex
+    pyelftools
+    python-gnupg
+    python-u2flib-host
+    websocket-client
+  ] ++ lib.optionals stdenv.hostPlatform.isLinux [ bleak ];
 
   # No tests
   doCheck = false;

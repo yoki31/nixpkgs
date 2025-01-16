@@ -1,5 +1,13 @@
-{ lib, stdenv, fetchFromGitHub, pkg-config, deadbeef, gtk3, perl
-, libdbusmenu-glib }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pkg-config,
+  deadbeef,
+  gtk3,
+  perl,
+  libdbusmenu,
+}:
 
 stdenv.mkDerivation rec {
   pname = "deadbeef-statusnotifier-plugin";
@@ -13,7 +21,11 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ deadbeef gtk3 libdbusmenu-glib ];
+  buildInputs = [
+    deadbeef
+    gtk3
+    libdbusmenu
+  ];
 
   buildFlags = [ "gtk3" ];
 

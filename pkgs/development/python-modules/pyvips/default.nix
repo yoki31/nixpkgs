@@ -1,31 +1,72 @@
-{ buildPythonPackage, fetchPypi, pytest-runner, pytestCheckHook, glib, vips, cffi
-, pkg-config, pkgconfig, lib }:
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  cffi,
+  fetchFromGitHub,
+  glib,
+  pkg-config, # from pkgs
+  pkgconfig, # from pythonPackages
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  vips,
+}:
 
 buildPythonPackage rec {
   pname = "pyvips";
-  version = "2.1.16";
+  version = "2.2.3";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "654c03014a15f846786807a2ece6f525a8fec883d1c857742c8e37da149a81ed";
+  disabled = pythonOlder "3.7";
+
+  src = fetchFromGitHub {
+    owner = "libvips";
+    repo = "pyvips";
+    tag = "v${version}";
+    hash = "sha256-EGB1cOR1pVCXGjRj1NLj4Mk3kIy8luRqk3gGJqVNs7U=";
   };
 
-  nativeBuildInputs = [ pytest-runner pkgconfig pkg-config ];
+  nativeBuildInputs = [
+    pkg-config
+  ];
 
-  buildInputs = [ glib vips ];
+  buildInputs = [
+    glib
+    vips
+  ];
 
-  propagatedBuildInputs = [ cffi ];
+  build-system = [
+    pkgconfig
+    setuptools
+  ];
 
-  # tests are not included in pypi tarball
-  doCheck = false;
-  checkInputs = [ pytestCheckHook ];
+  dependencies = [ cffi ];
+
+  env = lib.optionalAttrs stdenv.cc.isClang {
+    NIX_CFLAGS_COMPILE = "-Wno-error=incompatible-function-pointer-types";
+  };
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  postPatch = ''
+    substituteInPlace pyvips/__init__.py \
+      --replace 'libvips.so.42' '${lib.getLib vips}/lib/libvips${stdenv.hostPlatform.extensions.sharedLibrary}' \
+      --replace 'libvips.42.dylib' '${lib.getLib vips}/lib/libvips${stdenv.hostPlatform.extensions.sharedLibrary}' \
+      --replace 'libgobject-2.0.so.0' '${glib.out}/lib/libgobject-2.0${stdenv.hostPlatform.extensions.sharedLibrary}' \
+      --replace 'libgobject-2.0.dylib' '${glib.out}/lib/libgobject-2.0${stdenv.hostPlatform.extensions.sharedLibrary}' \
+  '';
 
   pythonImportsCheck = [ "pyvips" ];
 
   meta = with lib; {
-    description = "A python wrapper for libvips";
+    description = "Python wrapper for libvips";
     homepage = "https://github.com/libvips/pyvips";
+    changelog = "https://github.com/libvips/pyvips/blob/v${version}/CHANGELOG.rst";
     license = licenses.mit;
-    maintainers = with maintainers; [ ccellado ];
+    maintainers = with maintainers; [
+      ccellado
+      anthonyroussel
+    ];
   };
 }

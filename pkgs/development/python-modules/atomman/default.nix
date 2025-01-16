@@ -1,66 +1,83 @@
-{ lib
-, buildPythonPackage
-, cython
-, datamodeldict
-, fetchFromGitHub
-, matplotlib
-, numericalunits
-, numpy
-, pandas
-, potentials
-, pytest
-, pythonOlder
-, scipy
-, toolz
-, xmltodict
-, python
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  datamodeldict,
+  fetchFromGitHub,
+  matplotlib,
+  numericalunits,
+  numpy,
+  pandas,
+  phonopy,
+  potentials,
+  pytestCheckHook,
+  pythonOlder,
+  requests,
+  scipy,
+  setuptools,
+  toolz,
+  xmltodict,
 }:
 
 buildPythonPackage rec {
-  version = "1.4.3";
   pname = "atomman";
-  format = "setuptools";
+  version = "1.4.11";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "usnistgov";
     repo = "atomman";
-    rev = "v${version}";
-    sha256 = "sha256-is47O59Pjrh9tPC1Y2+DVVcHbxmcjUOFOVGnNHuURoM=";
+    tag = "v${version}";
+    hash = "sha256-2yxHv9fSgLM5BeUkXV9NX+xyplXtyfWodwS9sVUVzqU=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    numpy
     cython
+  ];
+
+  dependencies = [
     datamodeldict
     matplotlib
     numericalunits
     numpy
     pandas
     potentials
+    requests
     scipy
     toolz
     xmltodict
   ];
 
-  checkInputs = [
-    pytest
-  ];
+  pythonRelaxDeps = [ "atomman" ];
 
-  checkPhase = ''
-    # pytestCheckHook doesn't work
-    py.test tests -k "not test_rootdir and not test_version \
-      and not test_atomic_mass and not imageflags"
+  preCheck = ''
+    # By default, pytestCheckHook imports atomman from the current directory
+    # instead of from where `pip` installs it and fails due to missing Cython
+    # modules. Fix this by removing atomman from the current directory.
+    #
+    rm -r atomman
   '';
 
-  pythonImportsCheck = [
-    "atomman"
+  nativeCheckInputs = [
+    phonopy
+    pytestCheckHook
   ];
 
+  disabledTests = [
+    "test_unique_shifts_prototype" # needs network access to download database files
+  ];
+
+  pythonImportsCheck = [ "atomman" ];
+
   meta = with lib; {
+    changelog = "https://github.com/usnistgov/atomman/blob/${src.rev}/UPDATES.rst";
     description = "Atomistic Manipulation Toolkit";
     homepage = "https://github.com/usnistgov/atomman/";
     license = licenses.mit;
-    maintainers = with maintainers; [ costrouc ];
+    maintainers = [ ];
   };
 }

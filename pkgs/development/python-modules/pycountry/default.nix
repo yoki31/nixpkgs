@@ -1,31 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  pythonOlder,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pycountry";
-  version = "20.7.3";
+  version = "24.6.1";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "0hnbabsmqimx5hqh0jbd2f64i8fhzhhbrvid57048hs5sd9ll241";
+  disabled = pythonOlder "3.8";
+
+  src = fetchFromGitHub {
+    owner = "pycountry";
+    repo = "pycountry";
+    tag = version;
+    hash = "sha256-4YVPh6OGWguqO9Ortv+vAejxx7WLs4u0SVLv8JlKSWM=";
   };
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  postPatch = ''
+    sed -i "/addopts/d" pyproject.toml
+    sed -i "/pytest-cov/d" pyproject.toml
+  '';
 
-  pythonImportsCheck = [
-    "pycountry"
-  ];
+  build-system = [ poetry-core ];
 
-  meta = with lib; {
-    homepage = "https://github.com/flyingcircusio/pycountry";
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "pycountry" ];
+
+  meta = {
+    homepage = "https://github.com/pycountry/pycountry";
+    changelog = "https://github.com/pycountry/pycountry/blob/${src.rev}/HISTORY.txt";
     description = "ISO country, subdivision, language, currency and script definitions and their translations";
-    license = licenses.lgpl2;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.lgpl21Plus;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
-
 }

@@ -1,15 +1,15 @@
-{ lib, callPackage, CoreFoundation, fetchFromGitHub, pkgs, wrapCDDA, attachPkgs
-, tiles ? true, Cocoa
+{ lib, callPackage, fetchFromGitHub, fetchpatch, pkgs, wrapCDDA, attachPkgs
+, tiles ? true
 , debug ? false
 , useXdgDir ? false
-, version ? "2021-07-03"
-, rev ? "9017808252e1e149446c8f8bd7a6582ce0f95285"
-, sha256 ? "0qrvkbyg098jb9hv69sg5093b1vj8f4n75p73v01jnmyxlz3ax28"
+, version ? "2024-12-11"
+, rev ? "b871679a2d54dbc6bf3e6566033fadd2dc651592"
+, sha256 ? "sha256-t9R0QPky7zvjgGMq4kV8DdQFToJ/qngbJCw+8FlQztM="
 }:
 
 let
   common = callPackage ./common.nix {
-    inherit CoreFoundation tiles Cocoa debug useXdgDir;
+    inherit tiles debug useXdgDir;
   };
 
   self = common.overrideAttrs (common: rec {
@@ -21,6 +21,11 @@ let
       repo = "Cataclysm-DDA";
       inherit rev sha256;
     };
+
+    patches = [
+      # Unconditionally look for translation files in $out/share/locale
+      ./locale-path-git.patch
+    ];
 
     makeFlags = common.makeFlags ++ [
       "VERSION=git-${version}-${lib.substring 0 8 src.rev}"

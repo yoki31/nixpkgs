@@ -1,15 +1,36 @@
-{ mkDerivation
-, extra-cmake-modules
-, kcodecs, kconfig, kcoreaddons, kwindowsystem
-, libdbusmenu
-, phonon
-, qttools, qtx11extras
+{
+  mkDerivation,
+  lib,
+  stdenv,
+  extra-cmake-modules,
+  kcodecs,
+  kconfig,
+  kcoreaddons,
+  kwindowsystem,
+  libdbusmenu,
+  phonon,
+  qttools,
+  qtx11extras,
+  qtmacextras,
 }:
 
 mkDerivation {
-  name = "knotifications";
-  nativeBuildInputs = [ extra-cmake-modules qttools ];
-  buildInputs = [
-    kcodecs kconfig kcoreaddons kwindowsystem libdbusmenu phonon qtx11extras
+  pname = "knotifications";
+  nativeBuildInputs = [
+    extra-cmake-modules
+    qttools
   ];
+  buildInputs =
+    [
+      kcodecs
+      kconfig
+      kcoreaddons
+      kwindowsystem
+      libdbusmenu
+      phonon
+      qtx11extras
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      qtmacextras
+    ];
 }

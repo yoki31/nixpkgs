@@ -1,30 +1,40 @@
-{ fetchFromGitHub, fetchgit, fetchHex, rebar3WithPlugins, rebar3-nix, rebar3Relx
-, buildRebar3, writeScript, lib }:
+{
+  fetchFromGitHub,
+  fetchgit,
+  fetchHex,
+  rebar3Relx,
+  buildRebar3,
+  writeScript,
+  lib,
+}:
 
 let
   owner = "inaka";
   repo = "elvis";
-in rebar3Relx rec {
+in
+rebar3Relx rec {
   releaseType = "escript";
   # The package name "elvis" is already taken
   pname = "elvis-erlang";
-  version = "1.1.0";
+  version = "3.2.6";
   src = fetchFromGitHub {
     inherit owner repo;
-    sha256 = "6vNxr3AYpFuXaIVH9bWw7K5KiF1swfI+CSI43RoMQEA=";
+    sha256 = "13QM6UbH+1PxzhY/ufi5PEP2pKqSl5+g6tMvKmOUMb0=";
     rev = version;
   };
-  beamDeps = builtins.attrValues (import ./rebar-deps.nix {
-    inherit fetchHex fetchgit fetchFromGitHub;
-    builder = buildRebar3;
-  });
+  beamDeps = builtins.attrValues (
+    import ./rebar-deps.nix {
+      inherit fetchHex fetchgit fetchFromGitHub;
+      builder = buildRebar3;
+    }
+  );
   passthru.updateScript = writeScript "update.sh" ''
     #!/usr/bin/env nix-shell
     #!nix-shell -i bash -p bash common-updater-scripts git nix-prefetch-git gnutar gzip "rebar3WithPlugins {globalPlugins = [beamPackages.rebar3-nix];}"
 
     set -euo pipefail
 
-    latest=$(list-git-tags https://github.com/${owner}/${repo}.git | sort -V | tail -1)
+    latest=$(list-git-tags | sort -V | tail -1)
     if [ "$latest" != "${version}" ]; then
       nixpkgs="$(git rev-parse --show-toplevel)"
       nix_path="$nixpkgs/pkgs/development/beam-modules/elvis-erlang"
@@ -42,5 +52,6 @@ in rebar3Relx rec {
     platforms = platforms.unix;
     license = licenses.asl20;
     maintainers = with lib.maintainers; [ dlesl ];
+    mainProgram = "elvis";
   };
 }

@@ -1,80 +1,94 @@
 {
   # eval time deps
-  lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pythonOlder
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+  pythonOlder,
+
+  # buildtime
+  hatchling,
+
   # runtime deps
-, click
-, ghp-import
-, importlib-metadata
-, jinja2
-, markdown
-, mergedeep
-, packaging
-, pyyaml
-, pyyaml-env-tag
-, watchdog
+  click,
+  ghp-import,
+  importlib-metadata,
+  jinja2,
+  markdown,
+  markupsafe,
+  mergedeep,
+  mkdocs-get-deps,
+  packaging,
+  pathspec,
+  platformdirs,
+  pyyaml,
+  pyyaml-env-tag,
+  watchdog,
+
+  # optional-dependencies
+  babel,
+  setuptools,
+
   # testing deps
-, Babel
-, mock
-, pytestCheckHook
+  mock,
+  unittestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mkdocs";
-  version = "1.2.3";
-  disabled = pythonOlder "3.6";
+  version = "1.6.1";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = pname;
     repo = pname;
-    rev = version;
-    sha256 = "sha256-LBw2ftGyeNvARQ8xiYUho8BiQh+aIEqROP51gKvNxEo=";
+    tag = version;
+    hash = "sha256-JQSOgV12iYE6FubxdoJpWy9EHKFxyKoxrm/7arCn9Ak=";
   };
 
-  patches = [
-    (fetchpatch {
-      url = "https://github.com/mkdocs/mkdocs/commit/c93fc91e4dc0ef33e2ea418aaa32b0584a8d354a.patch";
-      sha256 = "sha256-7uLIuQOt6KU/+iS9cwhXkWPAHzZkQdMyNBxSMut5WK4=";
-      excludes = [ "tox.ini" ];
-    })
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     click
+    ghp-import
     jinja2
     markdown
+    markupsafe
     mergedeep
+    mkdocs-get-deps
+    packaging
+    pathspec
+    platformdirs
     pyyaml
     pyyaml-env-tag
-    ghp-import
-    importlib-metadata
     watchdog
-    packaging
-  ];
+  ] ++ lib.optionals (pythonOlder "3.10") [ importlib-metadata ];
 
-  checkInputs = [
-    Babel
+  optional-dependencies = {
+    i18n = [ babel ] ++ lib.optionals (pythonAtLeast "3.12") [ setuptools ];
+  };
+
+  nativeCheckInputs = [
+    unittestCheckHook
     mock
+  ] ++ optional-dependencies.i18n;
+
+  unittestFlagsArray = [
+    "-v"
+    "-p"
+    "'*tests.py'"
+    "mkdocs"
   ];
-
-
-  checkPhase = ''
-    set -euo pipefail
-
-    runHook preCheck
-
-    python -m unittest discover -v -p '*tests.py' mkdocs --top-level-directory .
-
-    runHook postCheck
-  '';
 
   pythonImportsCheck = [ "mkdocs" ];
 
   meta = with lib; {
+    changelog = "https://github.com/mkdocs/mkdocs/releases/tag/${version}";
     description = "Project documentation with Markdown / static website generator";
+    mainProgram = "mkdocs";
+    downloadPage = "https://github.com/mkdocs/mkdocs";
     longDescription = ''
       MkDocs is a fast, simple and downright gorgeous static site generator that's
       geared towards building project documentation. Documentation source files

@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, pruviloj
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  pruviloj,
+  lib,
 }:
-build-idris-package  {
-  name = "software_foundations";
+build-idris-package {
+  pname = "software_foundations";
   version = "2017-11-04";
 
   idrisDeps = [ pruviloj ];

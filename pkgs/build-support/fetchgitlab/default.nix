@@ -1,26 +1,102 @@
-{ fetchgit, fetchzip, lib }:
+{
+  lib,
+  fetchgit,
+  fetchzip,
+}:
 
-# gitlab example
-{ owner, repo, rev, protocol ? "https", domain ? "gitlab.com", name ? "source", group ? null
-, fetchSubmodules ? false, leaveDotGit ? false, deepClone ? false
-, ... # For hash agility
-} @ args:
+lib.makeOverridable (
+  # gitlab example
+  {
+    owner,
+    repo,
+    rev ? null,
+    tag ? null,
+    protocol ? "https",
+    domain ? "gitlab.com",
+    name ? "source",
+    group ? null,
+    fetchSubmodules ? false,
+    leaveDotGit ? false,
+    deepClone ? false,
+    forceFetchGit ? false,
+    sparseCheckout ? [ ],
+    ... # For hash agility
+  }@args:
 
-let
-  slug = lib.concatStringsSep "/" ((lib.optional (group != null) group) ++ [ owner repo ]);
-  escapedSlug = lib.replaceStrings [ "." "/" ] [ "%2E" "%2F" ] slug;
-  escapedRev = lib.replaceStrings [ "+" "%" "/" ] [ "%2B" "%25" "%2F" ] rev;
-  passthruAttrs = removeAttrs args [ "protocol" "domain" "owner" "group" "repo" "rev" ];
+  assert (
+    lib.assertMsg (lib.xor (tag == null) (
+      rev == null
+    )) "fetchFromGitLab requires one of either `rev` or `tag` to be provided (not both)."
+  );
 
-  useFetchGit = deepClone || fetchSubmodules || leaveDotGit;
-  fetcher = if useFetchGit then fetchgit else fetchzip;
+  let
+    slug = lib.concatStringsSep "/" (
+      (lib.optional (group != null) group)
+      ++ [
+        owner
+        repo
+      ]
+    );
+    revWithTag = if tag != null then "refs/tags/" + tag else rev;
+    escapedSlug = lib.replaceStrings [ "." "/" ] [ "%2E" "%2F" ] slug;
+    escapedRevWithTag = lib.replaceStrings [ "+" "%" "/" ] [ "%2B" "%25" "%2F" ] revWithTag;
+    passthruAttrs = removeAttrs args [
+      "protocol"
+      "domain"
+      "owner"
+      "group"
+      "repo"
+      "rev"
+      "tag"
+      "fetchSubmodules"
+      "forceFetchGit"
+      "leaveDotGit"
+      "deepClone"
+    ];
 
-  fetcherArgs = (if useFetchGit then {
-    inherit rev deepClone fetchSubmodules leaveDotGit;
-    url = "${protocol}://${domain}/${slug}.git";
-  } else {
-    url = "${protocol}://${domain}/api/v4/projects/${escapedSlug}/repository/archive.tar.gz?sha=${escapedRev}";
-  }) // passthruAttrs // { inherit name; };
-in
+    useFetchGit =
+      fetchSubmodules || leaveDotGit || deepClone || forceFetchGit || (sparseCheckout != [ ]);
+    fetcher = if useFetchGit then fetchgit else fetchzip;
 
-fetcher fetcherArgs // { meta.homepage = "${protocol}://${domain}/${slug}/"; inherit rev; }
+    gitRepoUrl = "${protocol}://${domain}/${slug}.git";
+
+    fetcherArgs =
+      (
+        if useFetchGit then
+          {
+            inherit
+              rev
+              deepClone
+              tag
+              fetchSubmodules
+              sparseCheckout
+              leaveDotGit
+              ;
+            url = gitRepoUrl;
+          }
+        else
+          {
+            url = "${protocol}://${domain}/api/v4/projects/${escapedSlug}/repository/archive.tar.gz?sha=${escapedRevWithTag}";
+
+            passthru = {
+              inherit gitRepoUrl;
+            };
+          }
+      )
+      // passthruAttrs
+      // {
+        inherit name;
+      };
+  in
+
+  fetcher fetcherArgs
+  // {
+    meta.homepage = "${protocol}://${domain}/${slug}/";
+    inherit
+      tag
+      owner
+      repo
+      ;
+    rev = revWithTag;
+  }
+)

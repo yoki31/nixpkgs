@@ -1,4 +1,8 @@
-{ lib, mkDiscoursePlugin, fetchFromGitHub }:
+{
+  lib,
+  mkDiscoursePlugin,
+  fetchFromGitHub,
+}:
 
 mkDiscoursePlugin {
   name = "discourse-calendar";
@@ -6,8 +10,8 @@ mkDiscoursePlugin {
   src = fetchFromGitHub {
     owner = "discourse";
     repo = "discourse-calendar";
-    rev = "f3b64f7b8c009f18bdc16def7c7299f747ea08ab";
-    sha256 = "sha256-ACbPMfqyFj9877r56qr+wxHEln+L1sAuQg/YUDGpuds=";
+    rev = "908ad614bc412f831f929ca726a4bda0b9ccaab6";
+    sha256 = "sha256-ZzzcmTY/w9wa5wTR7ofJiNVmXwoKTKaKN202O80DO9g=";
   };
   meta = with lib; {
     homepage = "https://github.com/discourse/discourse-calendar";

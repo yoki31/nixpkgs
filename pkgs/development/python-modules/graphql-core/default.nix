@@ -1,37 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-benchmark
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-benchmark,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "graphql-core";
-  version = "3.1.7";
-  format = "setuptools";
+  version = "3.2.5";
+  pyproject = true;
 
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "graphql-python";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "1mwwh55qd5bcpvgy6pyliwn8jkmj4yk4d2pqb6mdkgqhdic2081l";
+    repo = "graphql-core";
+    tag = "v${version}";
+    hash = "sha256-xZOiQOFWnImDXuvHP9V6BDjIZwlwHSxN/os+UYV4A0M=";
   };
 
-  checkInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail ', "setuptools>=59,<70"' ""
+  '';
+
+  build-system = [
+    poetry-core
+  ];
+
+  nativeCheckInputs = [
     pytest-asyncio
     pytest-benchmark
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "graphql"
-  ];
+  pythonImportsCheck = [ "graphql" ];
 
   meta = with lib; {
+    changelog = "https://github.com/graphql-python/graphql-core/releases/tag/v${version}";
     description = "Port of graphql-js to Python";
     homepage = "https://github.com/graphql-python/graphql-core";
     license = licenses.mit;

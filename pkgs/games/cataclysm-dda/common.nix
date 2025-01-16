@@ -1,5 +1,5 @@
-{ lib, stdenv, runtimeShell, pkg-config, gettext, ncurses, CoreFoundation
-, tiles, SDL2, SDL2_image, SDL2_mixer, SDL2_ttf, freetype, Cocoa
+{ lib, stdenv, runtimeShell, pkg-config, gettext, ncurses
+, tiles, SDL2, SDL2_image, SDL2_mixer, SDL2_ttf, freetype, zlib
 , debug
 , useXdgDir
 }:
@@ -7,15 +7,26 @@
 let
   inherit (lib) optionals optionalString;
 
-  cursesDeps = [ gettext ncurses ]
-    ++ optionals stdenv.isDarwin [ CoreFoundation ];
+  commonDeps = [
+    gettext
+    zlib
+  ];
 
-  tilesDeps = [ SDL2 SDL2_image SDL2_mixer SDL2_ttf freetype ]
-    ++ optionals stdenv.isDarwin [ Cocoa ];
+  cursesDeps = commonDeps ++ [ ncurses ];
+
+  tilesDeps =
+    commonDeps
+    ++ [
+      SDL2
+      SDL2_image
+      SDL2_mixer
+      SDL2_ttf
+      freetype
+    ];
 
   patchDesktopFile = ''
     substituteInPlace $out/share/applications/org.cataclysmdda.CataclysmDDA.desktop \
-      --replace "Exec=cataclysm-tiles" "Exec=$out/bin/cataclysm-tiles"
+      --replace-fail "Exec=cataclysm-tiles" "Exec=$out/bin/cataclysm-tiles"
   '';
 
   installMacOSAppLauncher = ''
@@ -37,15 +48,10 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = cursesDeps ++ optionals tiles tilesDeps;
+  buildInputs = if tiles then tilesDeps else cursesDeps;
 
   postPatch = ''
-    patchShebangs .
-
-    # Locale patch required for Darwin builds, see:
-    # https://github.com/NixOS/nixpkgs/pull/74064#issuecomment-560083970
-    sed -i src/translations.cpp \
-        -e 's@#elif (defined(__linux__) || (defined(MACOSX) && !defined(TILES)))@#elif 1@'
+    patchShebangs lang/compile_mo.sh
   '';
 
   makeFlags = [
@@ -55,19 +61,20 @@ stdenv.mkDerivation {
     "RELEASE=1"
   ] ++ optionals tiles [
     "TILES=1" "SOUND=1"
-  ] ++ optionals stdenv.isDarwin [
+  ] ++ optionals stdenv.hostPlatform.isDarwin [
     "NATIVE=osx"
     "CLANG=1"
-    "OSX_MIN=${stdenv.targetPlatform.darwinMinVersion}"
+    "OSX_MIN=${stdenv.hostPlatform.darwinMinVersion}"
   ];
 
   postInstall = optionalString tiles
-  ( if !stdenv.isDarwin
+  ( if !stdenv.hostPlatform.isDarwin
     then patchDesktopFile
     else installMacOSAppLauncher
   );
 
   dontStrip = debug;
+  enableParallelBuilding = true;
 
   passthru = {
     isTiles = tiles;
@@ -75,7 +82,8 @@ stdenv.mkDerivation {
   };
 
   meta = with lib; {
-    description = "A free, post apocalyptic, zombie infested rogue-like";
+    description = "Free, post apocalyptic, zombie infested rogue-like";
+    mainProgram = "cataclysm-tiles";
     longDescription = ''
       Cataclysm: Dark Days Ahead is a roguelike set in a post-apocalyptic world.
       Surviving is difficult: you have been thrown, ill-equipped, into a

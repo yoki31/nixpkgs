@@ -1,36 +1,48 @@
-{ lib
-, buildPythonPackage, fetchPypi
-, numpy, scipy, cython, six, decorator
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  cython,
+  decorator,
+  fetchPypi,
+  numpy,
+  pythonOlder,
+  scipy,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "pysptk";
-  version = "0.1.20";
+  version = "1.0.1";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "29e8e6a76243f3be728d23450982bd9f916530634079252a490ba7182bef30ca";
+    hash = "sha256-eLHJM4v3laQc3D/wP81GmcQBwyP1RjC7caGXEAeNCz8=";
   };
 
   PYSPTK_BUILD_VERSION = 0;
 
-  nativeBuildInputs = [
-    cython
-  ];
+  nativeBuildInputs = [ cython ];
 
   propagatedBuildInputs = [
+    decorator
     numpy
     scipy
     six
-    decorator
   ];
 
-  # No tests in the PyPI tarball
+  # Tests are not part of the PyPI releases
   doCheck = false;
 
+  pythonImportsCheck = [ "pysptk" ];
+
   meta = with lib; {
-    description = "A python wrapper for Speech Signal Processing Toolkit (SPTK)";
-    homepage = "https://pysptk.readthedocs.io/en/latest/";
+    broken = stdenv.hostPlatform.isDarwin;
+    description = "Wrapper for Speech Signal Processing Toolkit (SPTK)";
+    homepage = "https://pysptk.readthedocs.io/";
     license = licenses.mit;
     maintainers = with maintainers; [ hyphon81 ];
   };

@@ -1,36 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  twisted,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "prometheus-client";
-  version = "0.12.0";
-  format = "setuptools";
+  version = "0.21.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "prometheus";
     repo = "client_python";
-    rev = "v${version}";
-    sha256 = "1a0kllal5vkkdv325k0mx1mha2l9808mcz4dqx6qrgfskz8c2xjl";
+    tag = "v${version}";
+    hash = "sha256-LrCBCfIcpxNjy/yjwCG4J34eJO4AdUr21kp9FBwSeAY=";
   };
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "prometheus_client"
+  optional-dependencies.twisted = [ twisted ];
+
+  __darwinAllowLocalNetworking = true;
+
+  nativeCheckInputs = [ pytestCheckHook ] ++ lib.flatten (lib.attrValues optional-dependencies);
+
+  pythonImportsCheck = [ "prometheus_client" ];
+
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    # fails in darwin sandbox: Operation not permitted
+    "test_instance_ip_grouping_key"
   ];
 
   meta = with lib; {
     description = "Prometheus instrumentation library for Python applications";
     homepage = "https://github.com/prometheus/client_python";
+    changelog = "https://github.com/prometheus/client_python/releases/tag/v${version}";
     license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
 }

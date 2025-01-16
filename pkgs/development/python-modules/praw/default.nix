@@ -1,40 +1,44 @@
-{ lib
-, betamax
-, betamax-matchers
-, betamax-serializers
-, buildPythonPackage
-, fetchFromGitHub
-, mock
-, prawcore
-, pytestCheckHook
-, pythonOlder
-, requests-toolbelt
-, update_checker
-, websocket-client
+{
+  lib,
+  betamax-matchers,
+  betamax-serializers,
+  betamax,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  mock,
+  prawcore,
+  pytestCheckHook,
+  pythonOlder,
+  requests-toolbelt,
+  update-checker,
+  websocket-client,
 }:
 
 buildPythonPackage rec {
   pname = "praw";
-  version = "7.5.0";
-  format = "setuptools";
+  version = "7.8.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "praw-dev";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-xcITJ349ek9Y0HvJwzKJ7xDUV74w2v3yTBaj5n8YJ58=";
+    repo = "praw";
+    tag = "v${version}";
+    hash = "sha256-jxF7rlMwKIKwyYv35vYWAdtClsVhnIkywoyMQeggGBc=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ flit-core ];
+
+  dependencies = [
     mock
     prawcore
-    update_checker
+    update-checker
     websocket-client
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     betamax
     betamax-serializers
     betamax-matchers
@@ -42,13 +46,17 @@ buildPythonPackage rec {
     requests-toolbelt
   ];
 
-  pythonImportsCheck = [
-    "praw"
+  disabledTestPaths = [
+    # tests requiring network
+    "tests/integration"
   ];
+
+  pythonImportsCheck = [ "praw" ];
 
   meta = with lib; {
     description = "Python Reddit API wrapper";
     homepage = "https://praw.readthedocs.org/";
+    changelog = "https://github.com/praw-dev/praw/blob/v${version}/CHANGES.rst";
     license = licenses.bsd2;
     maintainers = with maintainers; [ fab ];
   };

@@ -3,22 +3,27 @@
 , fetchFromGitHub
 , qtbase
 , qmake
+, qttools
 , wrapQtAppsHook
-, copyDesktopItems
-, makeDesktopItem
 }:
 
 stdenv.mkDerivation rec {
   pname = "cubiomes-viewer";
-  version = "1.12.1";
+  version = "4.1.2";
 
   src = fetchFromGitHub {
     owner = "Cubitect";
     repo = pname;
     rev = version;
-    sha256 = "sha256-F0c6gMQKu35iBNRw+wpoxSUOhRUbPRKIXSNDDNZsfPE=";
+    hash = "sha256-izDKS08LNT2rV5rIxlWRHevJAKEbAVzekjfZy0Oen1I=";
     fetchSubmodules = true;
   };
+
+  postPatch = ''
+    substituteInPlace cubiomes-viewer.pro \
+      --replace '$$[QT_INSTALL_BINS]/lupdate' lupdate \
+      --replace '$$[QT_INSTALL_BINS]/lrelease' lrelease
+  '';
 
   buildInputs = [
     qtbase
@@ -26,18 +31,9 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     qmake
+    qttools
     wrapQtAppsHook
-    copyDesktopItems
   ];
-
-  desktopItems = [ (makeDesktopItem {
-    name = pname;
-    desktopName = "Cubiomes Viewer";
-    exec = pname;
-    icon = pname;
-    categories = "Game";
-    comment = meta.description;
-  }) ];
 
   preBuild = ''
     # QMAKE_PRE_LINK is not executed (I dont know why)
@@ -50,15 +46,18 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     cp cubiomes-viewer $out/bin
 
-    mkdir -p $out/share/pixmaps
-    cp icons/map.png $out/share/pixmaps/cubiomes-viewer.png
+    mkdir -p $out/share/{pixmaps,applications}
+    cp rc/icons/map.png $out/share/pixmaps/com.github.cubitect.cubiomes-viewer.png
+    cp etc/com.github.cubitect.cubiomes-viewer.desktop $out/share/applications
 
     runHook postInstall
   '';
 
   meta = with lib; {
+    broken = stdenv.hostPlatform.isDarwin;
     homepage = "https://github.com/Cubitect/cubiomes-viewer";
-    description = "A graphical Minecraft seed finder and map viewer";
+    description = "Graphical Minecraft seed finder and map viewer";
+    mainProgram = "cubiomes-viewer";
     longDescription = ''
       Cubiomes Viewer provides a graphical interface for the efficient and flexible seed-finding
       utilities provided by cubiomes and a map viewer for the Minecraft biomes and structure generation.

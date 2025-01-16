@@ -1,24 +1,26 @@
-{ absl-py
-, buildPythonPackage
-, fetchFromGitHub
-, googleapis-common-protos
-, lib
+{
+  absl-py,
+  buildPythonPackage,
+  fetchFromGitHub,
+  googleapis-common-protos,
+  protobuf,
+  setuptools,
+  lib,
 }:
 
 buildPythonPackage rec {
   pname = "tensorflow-metadata";
-  version = "1.5.0";
+  version = "1.16.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tensorflow";
     repo = "metadata";
-    rev = "v${version}";
-    sha256 = "17p74k6rwswpmj7m16cw9hdam6b4m7v5bahirmc2l1kwfvrn4w33";
+    tag = "v${version}";
+    hash = "sha256-MP5P4kFACT1guZVU3f9YrnKeQaUK0Tnu7edKRy4yvlM=";
   };
 
-  patches = [
-    ./build.patch
-  ];
+  patches = [ ./build.patch ];
 
   # Default build pulls in Bazel + extra deps, given the actual build
   # is literally three lines (see below) - replace it with custom build.
@@ -28,14 +30,18 @@ buildPythonPackage rec {
     done
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     absl-py
     googleapis-common-protos
+    protobuf
   ];
 
-  pythonImportsCheck = [
-    "tensorflow_metadata"
-  ];
+  # has no tests
+  doCheck = false;
+
+  pythonImportsCheck = [ "tensorflow_metadata" ];
 
   meta = with lib; {
     description = "Standard representations for metadata that are useful when training machine learning models with TensorFlow";

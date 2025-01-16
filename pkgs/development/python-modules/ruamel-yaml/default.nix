@@ -1,33 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, ruamel-base
-, ruamel-yaml-clib
-, isPyPy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  ruamel-base,
+  ruamel-yaml-clib,
+  isPyPy,
 }:
 
 buildPythonPackage rec {
   pname = "ruamel-yaml";
-  version = "0.17.17";
+  version = "0.18.6";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "ruamel.yaml";
     inherit version;
-    sha256 = "9751de4cbb57d4bfbf8fc394e125ed4a2f170fbff3dc3d78abf50be85924f8be";
+    hash = "sha256-iyfmohfnhsb75WNNjz8RvGPg+A9qWJDyiGPZxFqsMRs=";
   };
+
+  nativeBuildInputs = [ setuptools ];
 
   # Tests use relative paths
   doCheck = false;
 
-  propagatedBuildInputs = [ ruamel-base ]
-    ++ lib.optional (!isPyPy) ruamel-yaml-clib;
+  propagatedBuildInputs = [ ruamel-base ] ++ lib.optional (!isPyPy) ruamel-yaml-clib;
 
   pythonImportsCheck = [ "ruamel.yaml" ];
 
   meta = with lib; {
     description = "YAML parser/emitter that supports roundtrip preservation of comments, seq/map flow style, and map key order";
     homepage = "https://sourceforge.net/projects/ruamel-yaml/";
+    changelog = "https://sourceforge.net/p/ruamel-yaml/code/ci/default/tree/CHANGES";
     license = licenses.mit;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = [ ];
   };
 }

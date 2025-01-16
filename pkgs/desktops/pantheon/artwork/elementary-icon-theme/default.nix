@@ -1,25 +1,25 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, meson
-, python3
-, ninja
-, hicolor-icon-theme
-, gtk3
-, xorg
-, librsvg
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  hicolor-icon-theme,
+  gtk3,
+  xcursorgen,
+  librsvg,
 }:
 
-stdenv.mkDerivation rec {
+stdenvNoCC.mkDerivation rec {
   pname = "elementary-icon-theme";
-  version = "6.1.0";
+  version = "8.1.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "icons";
     rev = version;
-    sha256 = "sha256-WR4HV0nJKj0WeSFHXLK64O0LhX8myAJE4w0aztyhPn4=";
+    sha256 = "sha256-WltMfWMcfUqpnfuGa6NzfxSeTais0MLsiu82ybaOcvs=";
   };
 
   nativeBuildInputs = [
@@ -27,8 +27,7 @@ stdenv.mkDerivation rec {
     librsvg
     meson
     ninja
-    python3
-    xorg.xcursorgen
+    xcursorgen
   ];
 
   propagatedBuildInputs = [
@@ -42,17 +41,10 @@ stdenv.mkDerivation rec {
     "-Dpalettes=false" # Don't install gimp and inkscape palette files
   ];
 
-  postPatch = ''
-    chmod +x meson/symlink.py
-    patchShebangs meson/symlink.py
-  '';
-
   postFixup = "gtk-update-icon-cache $out/share/icons/elementary";
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

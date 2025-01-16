@@ -1,57 +1,71 @@
-{ lib
-, acme
-, aiohttp
-, asynctest
-, atomicwrites
-, attrs
-, buildPythonPackage
-, fetchFromGitHub
-, pycognito
-, pytest-aiohttp
-, pytestCheckHook
-, snitun
-, warrant
+{
+  lib,
+  acme,
+  aiohttp,
+  atomicwrites-homeassistant,
+  attrs,
+  buildPythonPackage,
+  ciso8601,
+  cryptography,
+  fetchFromGitHub,
+  pycognito,
+  pyjwt,
+  pytest-aiohttp,
+  pytest-timeout,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  snitun,
+  syrupy,
+  webrtc-models,
+  xmltodict,
 }:
 
 buildPythonPackage rec {
   pname = "hass-nabucasa";
-  version = "0.52.0";
+  version = "0.87.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.12";
 
   src = fetchFromGitHub {
     owner = "nabucasa";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-mTbNuER26BPQIjcmlpkdFNeBcNF1vTldaNpoEla0XbM=";
+    repo = "hass-nabucasa";
+    tag = version;
+    hash = "sha256-V9iP/YRvxsdpYLqcRHSIULlOPQKq5fkouUXTNNeF0FY=";
   };
 
-  postPatch = ''
-    sed -i 's/"acme.*"/"acme"/' setup.py
-    substituteInPlace setup.py \
-      --replace "cryptography>=2.8,<4.0" "cryptography" \
-      --replace "snitun==" "snitun>="
-  '';
+  pythonRelaxDeps = [ "acme" ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     acme
     aiohttp
-    atomicwrites
+    atomicwrites-homeassistant
     attrs
+    ciso8601
+    cryptography
     pycognito
+    pyjwt
     snitun
-    warrant
+    webrtc-models
   ];
 
-  checkInputs = [
-    asynctest
+  nativeCheckInputs = [
     pytest-aiohttp
+    pytest-timeout
     pytestCheckHook
+    syrupy
+    xmltodict
   ];
 
   pythonImportsCheck = [ "hass_nabucasa" ];
 
   meta = with lib; {
-    homepage = "https://github.com/NabuCasa/hass-nabucasa";
     description = "Python module for the Home Assistant cloud integration";
+    homepage = "https://github.com/NabuCasa/hass-nabucasa";
+    changelog = "https://github.com/NabuCasa/hass-nabucasa/releases/tag/${version}";
     license = licenses.gpl3Only;
     maintainers = with maintainers; [ Scriptkiddi ];
   };

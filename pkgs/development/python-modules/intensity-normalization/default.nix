@@ -1,49 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pytestCheckHook
-, matplotlib
-, nibabel
-, numpy
-, scikit-fuzzy
-, scikitimage
-, scikit-learn
-, scipy
-, statsmodels
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  pytestCheckHook,
+  matplotlib,
+  nibabel,
+  numpy,
+  pydicom,
+  pymedio,
+  scikit-fuzzy,
+  scikit-image,
+  scikit-learn,
+  scipy,
+  simpleitk,
+  statsmodels,
 }:
 
 buildPythonPackage rec {
   pname = "intensity-normalization";
-  version = "2.1.4";
+  version = "2.2.4";
   format = "setuptools";
 
   disabled = pythonOlder "3.6";
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "e7b46039311bcbba40224d85eb07eefe1488bd8a6faa893a180e15e65c48b7f5";
+    pname = "intensity_normalization";
+    inherit version;
+    hash = "sha256-s/trDIRoqLFj3NO+iv3E+AEB4grBAHDlEL6+TCdsgmg=";
   };
+
+  postPatch = ''
+    substituteInPlace setup.cfg --replace "!=3.10.*," "" --replace "!=3.11.*" ""
+    substituteInPlace setup.cfg --replace "pytest-runner" ""
+  '';
+
+  pythonRelaxDeps = [ "nibabel" ];
 
   propagatedBuildInputs = [
     matplotlib
     nibabel
     numpy
+    pydicom
+    pymedio
     scikit-fuzzy
-    scikitimage
+    scikit-image
     scikit-learn
     scipy
+    simpleitk
     statsmodels
   ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
-
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "pytest-runner" ""
-  '';
+  nativeCheckInputs = [ pytestCheckHook ];
+  pytestFlagsArray = [ "tests" ];
 
   pythonImportsCheck = [
     "intensity_normalization"

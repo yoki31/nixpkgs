@@ -1,44 +1,62 @@
-{ lib, bundlerApp, bundlerUpdateScript, makeWrapper,
-  withPngcrush ? true,       pngcrush ? null,
-  withPngout ? true,         pngout ? null,
-  withAdvpng ? true,         advancecomp ? null,
-  withOptipng ? true,        optipng ? null,
-  withPngquant ? true,       pngquant ? null,
-  withJhead ? true,          jhead ? null,
-  withJpegoptim ? true,      jpegoptim ? null,
-  withJpegrecompress ? true, jpeg-archive ? null,
-  withJpegtran ? true,       libjpeg ? null,
-  withGifsicle ? true,       gifsicle ? null,
-  withSvgo ? true,           svgo ? null
+{
+  lib,
+  bundlerApp,
+  bundlerUpdateScript,
+  makeWrapper,
+  withPngcrush ? true,
+  pngcrush,
+  withPngout ? false,
+  pngout, # disabled by default because it's unfree
+  withAdvpng ? true,
+  advancecomp,
+  withOptipng ? true,
+  optipng,
+  withPngquant ? true,
+  pngquant,
+  withOxipng ? true,
+  oxipng,
+  withJhead ? true,
+  jhead,
+  withJpegoptim ? true,
+  jpegoptim,
+  withJpegrecompress ? true,
+  jpeg-archive,
+  withJpegtran ? true,
+  libjpeg,
+  withGifsicle ? true,
+  gifsicle,
+  withSvgo ? true,
+  svgo,
 }:
 
-assert withPngcrush       -> pngcrush != null;
-assert withPngout         -> pngout != null;
-assert withAdvpng         -> advancecomp != null;
-assert withOptipng        -> optipng != null;
-assert withPngquant       -> pngquant != null;
-assert withJhead          -> jhead != null;
-assert withJpegoptim      -> jpegoptim != null;
-assert withJpegrecompress -> jpeg-archive != null;
-assert withJpegtran       -> libjpeg != null;
-assert withGifsicle       -> gifsicle != null;
-assert withSvgo           -> svgo != null;
-
-with lib;
-
 let
-  optionalDepsPath = []
-    ++ optional withPngcrush pngcrush
-    ++ optional withPngout pngout
-    ++ optional withAdvpng advancecomp
-    ++ optional withOptipng optipng
-    ++ optional withPngquant pngquant
-    ++ optional withJhead jhead
-    ++ optional withJpegoptim jpegoptim
-    ++ optional withJpegrecompress jpeg-archive
-    ++ optional withJpegtran libjpeg
-    ++ optional withGifsicle gifsicle
-    ++ optional withSvgo svgo;
+  optionalDepsPath =
+    lib.optional withPngcrush pngcrush
+    ++ lib.optional withPngout pngout
+    ++ lib.optional withAdvpng advancecomp
+    ++ lib.optional withOptipng optipng
+    ++ lib.optional withPngquant pngquant
+    ++ lib.optional withOxipng oxipng
+    ++ lib.optional withJhead jhead
+    ++ lib.optional withJpegoptim jpegoptim
+    ++ lib.optional withJpegrecompress jpeg-archive
+    ++ lib.optional withJpegtran libjpeg
+    ++ lib.optional withGifsicle gifsicle
+    ++ lib.optional withSvgo svgo;
+
+  disabledWorkersFlags =
+    lib.optional (!withPngcrush) "--no-pngcrush"
+    ++ lib.optional (!withPngout) "--no-pngout"
+    ++ lib.optional (!withAdvpng) "--no-advpng"
+    ++ lib.optional (!withOptipng) "--no-optipng"
+    ++ lib.optional (!withPngquant) "--no-pngquant"
+    ++ lib.optional (!withOxipng) "--no-oxipng"
+    ++ lib.optional (!withJhead) "--no-jhead"
+    ++ lib.optional (!withJpegoptim) "--no-jpegoptim"
+    ++ lib.optional (!withJpegrecompress) "--no-jpegrecompress"
+    ++ lib.optional (!withJpegtran) "--no-jpegtran"
+    ++ lib.optional (!withGifsicle) "--no-gifsicle"
+    ++ lib.optional (!withSvgo) "--no-svgo";
 in
 
 bundlerApp {
@@ -47,20 +65,31 @@ bundlerApp {
 
   exes = [ "image_optim" ];
 
-  buildInputs = [ makeWrapper ];
+  nativeBuildInputs = [ makeWrapper ];
 
   postBuild = ''
     wrapProgram $out/bin/image_optim \
-      --prefix PATH : ${makeBinPath optionalDepsPath}
+      --prefix PATH : ${lib.escapeShellArg (lib.makeBinPath optionalDepsPath)} \
+      --add-flags "${lib.concatStringsSep " " disabledWorkersFlags}"
   '';
 
   passthru.updateScript = bundlerUpdateScript "image_optim";
 
   meta = with lib; {
-    description = "Command line tool and ruby interface to optimize (lossless compress, optionally lossy) jpeg, png, gif and svg images using external utilities (advpng, gifsicle, jhead, jpeg-recompress, jpegoptim, jpegrescan, jpegtran, optipng, pngcrush, pngout, pngquant, svgo)";
-    homepage    = "https://github.com/toy/image_optim";
-    license     = licenses.mit;
-    maintainers = with maintainers; [ srghma nicknovitski ];
-    platforms   = platforms.all;
+    description = "Optimize images using multiple utilities";
+    longDescription = ''
+      Command line tool and ruby interface to optimize (lossless compress,
+      optionally lossy) jpeg, png, gif and svg images using external utilities
+      (advpng, gifsicle, jhead, jpeg-recompress, jpegoptim, jpegrescan,
+      jpegtran, optipng, oxipng, pngcrush, pngout, pngquant, svgo)
+    '';
+    homepage = "https://github.com/toy/image_optim";
+    license = licenses.mit;
+    maintainers = with maintainers; [
+      srghma
+      nicknovitski
+    ];
+    platforms = platforms.all;
+    mainProgram = "image_optim";
   };
 }

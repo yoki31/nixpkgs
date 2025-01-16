@@ -1,33 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, mock
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, sybil
-, twisted
-, zope_component
+{
+  lib,
+  buildPythonPackage,
+  fetchpatch2,
+  fetchPypi,
+  mock,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  sybil,
+  twisted,
 }:
 
 buildPythonPackage rec {
   pname = "testfixtures";
-  version = "6.18.3";
-  format = "setuptools";
+  version = "8.3.0";
+  pyproject = true;
+  # DO NOT CONTACT upstream.
+  # https://github.com/simplistix/ is only concerned with internal CI process.
+  # Any attempt by non-standard pip workflows to comment on issues will
+  # be met with hostility.
+  # https://github.com/simplistix/testfixtures/issues/169
+  # https://github.com/simplistix/testfixtures/issues/168
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-JgAQCulv/QgjNLN441VVD++LSlKab6TDT0cTCQXHQm0=";
+    hash = "sha256-1MC4SvLyZ2EPkIAJtQ1vmDpOWK3iLGe6tnh7WkAtWcA=";
   };
 
-  checkInputs = [
+  patches = [
+    (fetchpatch2 {
+      name = "python313-compat.patch";
+      url = "https://github.com/simplistix/testfixtures/commit/a23532c7bc685589cce6a5037821a74da48959e7.patch?full_index=1";
+      hash = "sha256-k0j/WgA+6LNTYJ233GJjeRU403bJJRxbpOu+BUsMeyQ=";
+    })
+  ];
+
+  build-system = [ setuptools ];
+
+  nativeCheckInputs = [
     mock
     pytestCheckHook
     sybil
     twisted
-    zope_component
   ];
 
   disabledTestPaths = [
@@ -35,30 +51,14 @@ buildPythonPackage rec {
     "testfixtures/tests/test_django"
   ];
 
-  disabledTests = lib.optionals (pythonAtLeast "3.10") [
-    # https://github.com/simplistix/testfixtures/issues/168
-    "test_invalid_communicate_call"
-    "test_invalid_kill"
-    "test_invalid_parameters"
-    "test_invalid_poll"
-    "test_invalid_send_signal"
-    "test_invalid_terminate"
-    "test_invalid_wait_call"
-    "test_replace_delattr_cant_remove"
-    "test_replace_delattr_cant_remove_not_strict"
-  ];
+  pytestFlagsArray = [ "testfixtures/tests" ];
 
-  pytestFlagsArray = [
-    "testfixtures/tests"
-  ];
-
-  pythonImportsCheck = [
-    "testfixtures"
-  ];
+  pythonImportsCheck = [ "testfixtures" ];
 
   meta = with lib; {
     description = "Collection of helpers and mock objects for unit tests and doc tests";
     homepage = "https://github.com/Simplistix/testfixtures";
+    changelog = "https://github.com/simplistix/testfixtures/blob/${version}/CHANGELOG.rst";
     license = licenses.mit;
     maintainers = with maintainers; [ siriobalmelli ];
   };

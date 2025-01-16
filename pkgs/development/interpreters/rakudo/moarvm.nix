@@ -1,32 +1,44 @@
-{ lib
-, stdenv
-, fetchurl
-, perl
-, CoreServices
-, ApplicationServices
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  perl,
+  CoreServices,
+  ApplicationServices,
 }:
 
 stdenv.mkDerivation rec {
   pname = "moarvm";
-  version = "2021.12";
+  version = "2024.12";
 
-  src = fetchurl {
-    url = "https://moarvm.org/releases/MoarVM-${version}.tar.gz";
-    sha256 = "sha256-1Ju+sQ2WFsLYen+t0ca7elzhHBnHxEu7i+928ltQXE8=";
+  # nixpkgs-update: no auto update
+  src = fetchFromGitHub {
+    owner = "moarvm";
+    repo = "moarvm";
+    rev = version;
+    hash = "sha256-CP8zYs4y2pT2keIxqE7yFy+N9aR3fidkwRXAe5blWAo=";
+    fetchSubmodules = true;
   };
 
-  postPatch = ''
-    patchShebangs .
-  '' + lib.optionalString stdenv.isDarwin ''
-    substituteInPlace Configure.pl \
-      --replace '`/usr/bin/arch`' '"${stdenv.hostPlatform.darwinArch}"' \
-      --replace '/usr/bin/arch' "$(type -P true)" \
-      --replace '/usr/' '/nope/'
-    substituteInPlace 3rdparty/dyncall/configure \
-      --replace '`sw_vers -productVersion`' '"$MACOSX_DEPLOYMENT_TARGET"'
-  '';
+  postPatch =
+    ''
+      patchShebangs .
+    ''
+    + lib.optionalString stdenv.hostPlatform.isDarwin ''
+      substituteInPlace Configure.pl \
+        --replace '`/usr/bin/arch`' '"${stdenv.hostPlatform.darwinArch}"' \
+        --replace '/usr/bin/arch' "$(type -P true)" \
+        --replace '/usr/' '/nope/'
+      substituteInPlace 3rdparty/dyncall/configure \
+        --replace '`sw_vers -productVersion`' '"11.0"'
+    '';
 
-  buildInputs = [ perl ] ++ lib.optionals stdenv.isDarwin [ CoreServices ApplicationServices ];
+  buildInputs =
+    [ perl ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      CoreServices
+      ApplicationServices
+    ];
   doCheck = false; # MoarVM does not come with its own test suite
 
   configureScript = "${perl}/bin/perl ./Configure.pl";
@@ -35,7 +47,11 @@ stdenv.mkDerivation rec {
     description = "VM with adaptive optimization and JIT compilation, built for Rakudo";
     homepage = "https://moarvm.org";
     license = licenses.artistic2;
+    maintainers = with maintainers; [
+      thoughtpolice
+      sgo
+    ];
+    mainProgram = "moar";
     platforms = platforms.unix;
-    maintainers = with maintainers; [ thoughtpolice vrthra sgo ];
   };
 }

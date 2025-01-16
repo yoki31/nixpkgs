@@ -1,14 +1,22 @@
-{ buildEnv, callPackage, makeWrapper }:
+{
+  buildEnv,
+  callPackage,
+  makeWrapper,
+}:
 
 let
-  sp = callPackage ./sp.nix {};
-  mp = sp.overrideAttrs (oldAttrs: rec {
-    sourceRoot = "source/MP";
+  sp = callPackage ./sp.nix { };
+  mp = sp.overrideAttrs (oldAttrs: {
+    sourceRoot = "${oldAttrs.src.name}/MP";
   });
-in buildEnv {
+in
+buildEnv {
   name = "iortcw";
 
-  paths = [ sp mp ];
+  paths = [
+    sp
+    mp
+  ];
 
   pathsToLink = [ "/opt" ];
 
@@ -17,7 +25,7 @@ in buildEnv {
   # so we can launch sp from mp game and vice versa
   postBuild = ''
     for i in `find -L $out/opt/iortcw -maxdepth 1 -type f -executable`; do
-      makeWrapper $i $out/bin/`basename $i` --run "cd $out/opt/iortcw"
+      makeWrapper $i $out/bin/`basename $i` --chdir "$out/opt/iortcw"
     done
   '';
 

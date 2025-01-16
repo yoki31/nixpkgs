@@ -1,22 +1,23 @@
-{ lib
-, mkDerivation
-, makeDesktopItem
-, fetchFromGitLab
-, qmake
-# qt
-, qtbase
-, qtwebsockets
+{
+  lib,
+  mkDerivation,
+  makeDesktopItem,
+  fetchFromGitLab,
+  qmake,
+  # qt
+  qtbase,
+  qtwebsockets,
 }:
 
 let
   desktopItem = makeDesktopItem {
-    type = "Application";
     name = "Michabo";
     desktopName = "Michabo";
     exec = "Michabo";
   };
 
-in mkDerivation rec {
+in
+mkDerivation rec {
   pname = "michabo";
   version = "0.1";
 
@@ -36,18 +37,21 @@ in mkDerivation rec {
     qtwebsockets
   ];
 
-  qmakeFlags = [ "michabo.pro" "DESTDIR=${placeholder "out"}/bin" ];
+  qmakeFlags = [
+    "michabo.pro"
+    "DESTDIR=${placeholder "out"}/bin"
+  ];
 
   postInstall = ''
     ln -s ${desktopItem}/share $out/share
   '';
 
   meta = with lib; {
-    description = "A native desktop app for Pleroma and Mastodon servers";
+    description = "Native desktop app for Pleroma and Mastodon servers";
+    mainProgram = "Michabo";
     homepage = "https://git.pleroma.social/kaniini/michabo";
     license = licenses.gpl3;
     maintainers = with maintainers; [ fgaz ];
     platforms = platforms.all;
   };
 }
-

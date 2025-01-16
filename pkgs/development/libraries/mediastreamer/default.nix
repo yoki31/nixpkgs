@@ -1,39 +1,33 @@
-{ alsa-lib
-, bctoolbox
-, bzrtp
-, cmake
-, doxygen
-, fetchFromGitLab
-, ffmpeg
-, glew
-, gsm
-, intltool
-, lib
-, libGL
-, libGLU
-, libX11
-, libXext
-, libXv
-, libmatroska
-, libopus
-, libpcap
-, libpulseaudio
-, libtheora
-, libupnp
-, libv4l
-, libvpx
-, ortp
-, pkg-config
-, python3
-, SDL
-, speex
-, srtp
-, stdenv
+{
+  bctoolbox,
+  bzrtp,
+  cmake,
+  fetchFromGitLab,
+  fetchpatch2,
+  ffmpeg,
+  glew,
+  gsm,
+  lib,
+  libX11,
+  libXext,
+  libopus,
+  libpulseaudio,
+  libv4l,
+  libvpx,
+  ortp,
+  python3,
+  qtbase,
+  qtdeclarative,
+  speex,
+  srtp,
+  stdenv,
 }:
 
 stdenv.mkDerivation rec {
   pname = "mediastreamer2";
-  version = "4.5.15";
+  version = "5.2.111";
+
+  dontWrapQtApps = true;
 
   src = fetchFromGitLab {
     domain = "gitlab.linphone.org";
@@ -41,7 +35,7 @@ stdenv.mkDerivation rec {
     group = "BC";
     repo = pname;
     rev = version;
-    sha256 = "sha256-n/EuXEQ9nJKC32PMvWkfP1G+E6uQQuu1/A168n8/cIY=";
+    hash = "sha256-Le52tsyzOpepmvb+GOGCPwwTriPUjhYpa6GM+y/6USA=";
   };
 
   patches = [
@@ -51,59 +45,57 @@ stdenv.mkDerivation rec {
     # plugin directory with desired plugins and wrap executables so that the
     # environment variable points to that directory.
     ./plugins_dir.patch
+
+    # Port to ffmpeg 5.0 API
+    (fetchpatch2 {
+      url = "https://salsa.debian.org/pkg-voip-team/linphone-stack/mediastreamer2/-/raw/4e7784802d2eac57dffe210c8c23e696f40ac6ec/debian/patches/ffmpeg_5_0_fixes.patch";
+      hash = "sha256-5ay4iVbx8IOX952HEFaKLBGKLRYUWRntufciApUVhh0=";
+    })
   ];
 
   nativeBuildInputs = [
     cmake
-    doxygen
-    intltool
-    pkg-config
     python3
+    qtbase
+    qtdeclarative
   ];
 
   propagatedBuildInputs = [
-    alsa-lib
+    # Made by BC
     bctoolbox
     bzrtp
+    ortp
+
     ffmpeg
     glew
-    gsm
-    libGL
-    libGLU
     libX11
     libXext
-    libXv
-    libmatroska
-    libopus
-    libpcap
     libpulseaudio
-    libtheora
-    libupnp
     libv4l
-    libvpx
-    ortp
-    SDL
     speex
     srtp
+
+    # Optional
+    gsm # GSM audio codec
+    libopus # Opus audio codec
+    libvpx # VP8 video codec
   ];
 
   strictDeps = true;
 
-  # Do not build static libraries
-  cmakeFlags = [ "-DENABLE_STATIC=NO" ];
-
-  NIX_CFLAGS_COMPILE = toString [
-    "-DGIT_VERSION=\"v${version}\""
-    "-Wno-error=deprecated-declarations"
-    "-Wno-error=cast-function-type"
-    "-Wno-error=stringop-truncation"
-    "-Wno-error=stringop-overflow"
+  cmakeFlags = [
+    "-DENABLE_STATIC=NO" # Do not build static libraries
+    "-DENABLE_QT_GL=ON" # Build necessary MSQOGL plugin for Linphone desktop
+    "-DCMAKE_C_FLAGS=-DGIT_VERSION=\"v${version}\""
+    "-DENABLE_STRICT=NO" # Disable -Werror
+    "-DENABLE_UNIT_TESTS=NO" # Do not build test executables
   ];
+
   NIX_LDFLAGS = "-lXext";
 
   meta = with lib; {
-    description = "A powerful and lightweight streaming engine specialized for voice/video telephony applications";
-    homepage = "http://www.linphone.org/technical-corner/mediastreamer2";
+    description = "Powerful and lightweight streaming engine specialized for voice/video telephony applications. Part of the Linphone project";
+    homepage = "https://www.linphone.org/technical-corner/mediastreamer2";
     license = licenses.gpl3Only;
     platforms = platforms.linux;
     maintainers = with maintainers; [ jluttine ];

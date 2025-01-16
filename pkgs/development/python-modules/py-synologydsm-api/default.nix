@@ -1,44 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, requests
-, urllib3
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "py-synologydsm-api";
-  version = "1.0.5";
-  format = "pyproject";
+  version = "2.6.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "mib1185";
-    repo = "synologydsm-api";
-    rev = "v${version}";
-    sha256 = "sha256-mm5N2RKn2KP2dV7+dw0sNWlCDT5X/fRmH8POQqJIoZY=";
+    repo = "py-synologydsm-api";
+    tag = "v${version}";
+    hash = "sha256-CjsSn9kbSOSiia47gDHUbMCgJs3pDJaJfQOwMPP+5WI=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    requests
-    urllib3
-  ];
+  dependencies = [ aiohttp ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "synology_dsm"
-  ];
+  pythonImportsCheck = [ "synology_dsm" ];
 
   meta = with lib; {
     description = "Python API for Synology DSM";
-    homepage = "https://github.com/hacf-fr/synologydsm-api";
+    mainProgram = "synologydsm-api";
+    homepage = "https://github.com/mib1185/py-synologydsm-api";
+    changelog = "https://github.com/mib1185/py-synologydsm-api/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ uvnikita ];
   };

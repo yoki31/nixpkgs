@@ -1,23 +1,25 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, smbus-cffi
-, urwid
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  pythonOlder,
+  smbus-cffi,
+  urwid,
 }:
 
 buildPythonPackage rec {
   pname = "pijuice";
   version = "1.7";
+  format = "setuptools";
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "PiSupply";
     repo = "PiJuice";
-    # rev hash retrieved from the latest modification on file Software/Source/VERSION, as this project
-    # does not use Github tags facility
-    rev = "3ba6719ab614a3dc7495d5d9c900dd4ea977c7e3";
-    sha256 = "GoNN07YgVaktpeY5iYDbfpy5fxkU1x0V3Sb1hgGAQt4=";
+    # Latest commit that fixes using the library against python 3.9 by renaming
+    # isAlive() to is_alive(). The former function was removed in python 3.9.
+    rev = "e2dca1f8dcfa12e009952a882c0674a545d193d6";
+    sha256 = "07Jr7RSjqI8j0tT0MNAjrN1sjF1+mI+V0vtKInvtxj8=";
   };
 
   patches = [
@@ -28,12 +30,16 @@ buildPythonPackage rec {
   ];
 
   PIJUICE_BUILD_BASE = 1;
+  PIJUICE_VERSION = version;
 
   preBuild = ''
     cd Software/Source
   '';
 
-  propagatedBuildInputs = [ smbus-cffi urwid ];
+  propagatedBuildInputs = [
+    smbus-cffi
+    urwid
+  ];
 
   # Remove the following files from the package:
   #
@@ -50,10 +56,14 @@ buildPythonPackage rec {
     rm $out/bin/pijuice_sys.py
     rm $out/bin/pijuiceboot
     mv $out/bin/pijuice_cli.py $out/bin/pijuice_cli
-   '';
+  '';
+
+  # no tests
+  doCheck = false;
 
   meta = with lib; {
     description = "Library and resources for PiJuice HAT for Raspberry Pi";
+    mainProgram = "pijuice_cli";
     homepage = "https://github.com/PiSupply/PiJuice";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ hexagonal-sun ];

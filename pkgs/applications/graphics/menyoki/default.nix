@@ -1,35 +1,50 @@
-{ fetchFromGitHub
-, installShellFiles
-, lib
-, pkg-config
-, rustPlatform
-, stdenv
-, libX11
-, libXrandr
-, AppKit
-, withSki ? true
+{
+  fetchFromGitHub,
+  installShellFiles,
+  lib,
+  pkg-config,
+  rustPlatform,
+  stdenv,
+  withSixel ? false,
+  libsixel,
+  xorg,
+  AppKit,
+  withSki ? true,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "menyoki";
-  version = "1.5.6";
+  version = "1.7.0";
 
   src = fetchFromGitHub {
     owner = "orhun";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-2k8CRya9SylauYV+2aQS2QHkQhyiTHMgGp1DNoZ4jbU=";
+    sha256 = "sha256-owP3G1Rygraifdc4iPURQ1Es0msNhYZIlfrtj0CSU6Y=";
   };
 
-  cargoSha256 = "sha256-NLPqJepg0WRt/X3am9J7vwIE9bn+dt2UHE26Dc/QRMM=";
+  cargoHash = "sha256-NtXjlGkX8AzSw98xHPymzdnTipMIunyDbpSr4eVowa0=";
 
-  nativeBuildInputs = [ installShellFiles ]
-    ++ lib.optional stdenv.isLinux pkg-config;
+  nativeBuildInputs = [ installShellFiles ] ++ lib.optional stdenv.hostPlatform.isLinux pkg-config;
 
-  buildInputs = lib.optionals stdenv.isLinux [ libX11 libXrandr ]
-    ++ lib.optional stdenv.isDarwin AppKit;
+  buildInputs =
+    lib.optional withSixel libsixel
+    ++ lib.optionals stdenv.hostPlatform.isLinux (
+      with xorg;
+      [
+        libX11
+        libXrandr
+      ]
+    )
+    ++ lib.optional stdenv.hostPlatform.isDarwin AppKit;
 
   buildNoDefaultFeatures = !withSki;
+  buildFeatures = lib.optional withSixel "sixel";
+
+  checkFlags = [
+    # sometimes fails on lower end machines
+    "--skip=record::fps::tests::test_fps"
+  ];
 
   postInstall = ''
     installManPage man/*
@@ -42,5 +57,6 @@ rustPlatform.buildRustPackage rec {
     changelog = "https://github.com/orhun/menyoki/blob/v${version}/CHANGELOG.md";
     license = licenses.gpl3Only;
     maintainers = with maintainers; [ figsoda ];
+    mainProgram = "menyoki";
   };
 }

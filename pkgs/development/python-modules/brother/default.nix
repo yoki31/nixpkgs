@@ -1,43 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pysnmp
-, pytest-asyncio
-, pytest-error-for-skips
-, pytest-runner
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  freezegun,
+  dacite,
+  pysnmp,
+  pytest-asyncio,
+  pytest-error-for-skips,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  syrupy,
 }:
 
 buildPythonPackage rec {
   pname = "brother";
-  version = "1.1.0";
-  disabled = pythonOlder "3.8";
+  version = "4.3.1";
+  pyproject = true;
+
+  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "bieniu";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-ZDQIpzdr3XkYrSUgrBDZsUwUZRQCdJdvmniMezvJxzU=";
+    repo = "brother";
+    tag = version;
+    hash = "sha256-fWa5FNBGV8tnJ3CozMicXLGsDvnTjNzU8PdV266MeeQ=";
   };
 
-  nativeBuildInputs = [
-    pytest-runner
-  ];
+  build-system = [ setuptools ];
 
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov --cov-report term-missing " ""
-  '';
-
-  propagatedBuildInputs = [
+  dependencies = [
+    dacite
     pysnmp
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    freezegun
     pytest-asyncio
     pytest-error-for-skips
     pytestCheckHook
+    syrupy
   ];
 
   pythonImportsCheck = [ "brother" ];
@@ -45,6 +47,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python wrapper for getting data from Brother laser and inkjet printers via SNMP";
     homepage = "https://github.com/bieniu/brother";
+    changelog = "https://github.com/bieniu/brother/releases/tag/${version}";
     license = licenses.asl20;
     maintainers = with maintainers; [ hexa ];
   };

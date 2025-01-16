@@ -1,11 +1,11 @@
 { fetchFromGitHub }:
 
 rec {
-  version = "4.1.6";
+  version = "4.1.13";
   src = fetchFromGitHub {
     owner = "NICMx";
     repo = "Jool";
-    rev = "v${version}";
-    sha256 = "09avkiazpfxzrgr3av58jbina5x9jqvqhjkn39475pfhfhrlv9fv";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-Uls3S53jdoGyJ5xUEipQ0Ev5LAp5wzF2DsaLZCy+6Gc=";
   };
 }

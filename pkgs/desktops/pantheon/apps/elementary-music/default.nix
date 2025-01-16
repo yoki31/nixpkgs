@@ -1,94 +1,68 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchpatch
-, nix-update-script
-, desktop-file-utils
-, meson
-, ninja
-, pkg-config
-, python3
-, vala
-, wrapGAppsHook
-, elementary-icon-theme
-, glib
-, granite
-, gst_all_1
-, gtk3
-, libgda
-, libgee
-, libgpod
-, libhandy
-, libpeas
-, taglib
-, zeitgeist
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  wrapGAppsHook4,
+  elementary-gtk-theme,
+  elementary-icon-theme,
+  glib,
+  granite7,
+  gst_all_1,
+  gtk4,
+  libadwaita,
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-music";
-  version = "5.1.1";
+  version = "8.0.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "music";
     rev = version;
-    sha256 = "1wqsn4ss9acg0scaqpg514ll2dj3bl71wly4mm79qkinhy30yv9n";
+    sha256 = "sha256-pqOAeHTFWSoJqXE9UCUkVIy5T7EoYsieJ4PMU1oX9ko=";
   };
 
-  patches = [
-    # Upstream code not respecting our localedir
-    # https://github.com/elementary/music/pull/648
-    (fetchpatch {
-      url = "https://github.com/elementary/music/commit/aea97103d59afd213467403a48788e476e47c4c3.patch";
-      sha256 = "1ayj8l6lb19hhl9bhsdfbq7jgchfmpjx0qkljnld90czcksn95yx";
-    })
-    # Fix build with meson 0.61
-    # https://github.com/elementary/music/pull/674
-    (fetchpatch {
-      url = "https://github.com/elementary/music/commit/fb3d840049c1e2e0bf8fdddea378a2db647dd096.patch";
-      sha256 = "sha256-tQZv7hZExLqbkGXahZxDfg7bkgwCKYbDholC2zuwlNw=";
-    })
-  ];
-
   nativeBuildInputs = [
-    desktop-file-utils
     meson
     ninja
     pkg-config
-    python3
     vala
-    wrapGAppsHook
+    wrapGAppsHook4
   ];
 
-  buildInputs = [
-    elementary-icon-theme
-    glib
-    granite
-    gtk3
-    libgda
-    libgee
-    libgpod
-    libhandy
-    libpeas
-    taglib
-    zeitgeist
-  ] ++ (with gst_all_1; [
-    gst-plugins-bad
-    gst-plugins-base
-    gst-plugins-good
-    gst-plugins-ugly
-    gstreamer
-  ]);
+  buildInputs =
+    [
+      elementary-icon-theme
+      glib
+      granite7
+      gtk4
+      libadwaita
+    ]
+    ++ (with gst_all_1; [
+      gst-plugins-bad
+      gst-plugins-base
+      gst-plugins-good
+      gst-plugins-ugly
+      gstreamer
+    ]);
 
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
+  preFixup = ''
+    gappsWrapperArgs+=(
+      # The GTK theme is hardcoded.
+      --prefix XDG_DATA_DIRS : "${elementary-gtk-theme}/share"
+      # The icon theme is hardcoded.
+      --prefix XDG_DATA_DIRS : "$XDG_ICON_DIRS"
+    )
   '';
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

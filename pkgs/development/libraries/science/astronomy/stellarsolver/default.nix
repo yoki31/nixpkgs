@@ -1,20 +1,34 @@
-{ lib, mkDerivation, fetchFromGitHub, cmake,
-  qtbase, cfitsio, gsl, wcslib, withTester ? false }:
+{
+  lib,
+  mkDerivation,
+  fetchFromGitHub,
+  cmake,
+  qtbase,
+  cfitsio,
+  gsl,
+  wcslib,
+  withTester ? false,
+}:
 
 mkDerivation rec {
   pname = "stellarsolver";
-  version = "1.9";
+  version = "2.6";
 
   src = fetchFromGitHub {
     owner = "rlancaste";
     repo = pname;
     rev = version;
-    sha256 = "sha256-PiRXNiemJ+UjVhmd2KPcTKJoDW9K9QBf62nkP1LlOfw=";
+    sha256 = "sha256-6WDiHaBhi9POtXynGU/eTeuqZSK81JJeuZv4SxOeVoE=";
   };
 
   nativeBuildInputs = [ cmake ];
 
-  buildInputs = [ qtbase cfitsio gsl wcslib ];
+  buildInputs = [
+    qtbase
+    cfitsio
+    gsl
+    wcslib
+  ];
 
   cmakeFlags = [
     "-DBUILD_TESTER=${if withTester then "on" else "off"}"

@@ -1,37 +1,48 @@
-{ lib, buildPythonPackage, fetchPypi, isPy27
-, azure-common
-, azure-mgmt-core
-, msrest
-, msrestazure
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  azure-common,
+  azure-mgmt-core,
+  isodate,
+  setuptools,
 }:
 
 buildPythonPackage rec {
-  version = "6.0.1";
   pname = "azure-mgmt-netapp";
-  disabled = isPy27;
+  version = "13.3.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "6ce683587be1638d8d77620b7af118060b8b7dfc4fd23d46a623a66edcb388e1";
-    extension = "zip";
+    pname = "azure_mgmt_netapp";
+    inherit version;
+    hash = "sha256-N0Fnnigw6sk5M2Cx9T2CtMAe0S64WN73shukkWMkiEk=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     azure-common
     azure-mgmt-core
-    msrest
-    msrestazure
+    isodate
   ];
 
   # no tests included
   doCheck = false;
 
-  pythonImportsCheck = [ "azure.common" "azure.mgmt.netapp" ];
+  pythonImportsCheck = [
+    "azure.common"
+    "azure.mgmt.netapp"
+  ];
 
   meta = with lib; {
     description = "Microsoft Azure NetApp Files Management Client Library for Python";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
+    changelog = "https://github.com/Azure/azure-sdk-for-python/blob/azure-mgmt-netapp_${version}/sdk/netapp/azure-mgmt-netapp/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    maintainers = [ ];
   };
 }

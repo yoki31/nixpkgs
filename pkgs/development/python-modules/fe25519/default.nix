@@ -1,37 +1,42 @@
-{ lib
-, bitlist
-, buildPythonPackage
-, fetchPypi
-, fountains
-, parts
-, nose
-, pytestCheckHook
+{
+  lib,
+  bitlist,
+  buildPythonPackage,
+  fetchPypi,
+  fountains,
+  parts,
+  pytest-cov-stub,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "fe25519";
-  version = "1.1.0";
-  format = "setuptools";
+  version = "1.5.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-3WFpbt4bA7zPlK+mp5DJXdgk44MBimCbpIMhRjZ5p0o=";
+    hash = "sha256-la+17tPHjceMTe7Wk8DGVaSptk8XJa+l7GTeqLIFDvs=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     bitlist
     fountains
     parts
   ];
 
-  checkInputs = [
-    nose
+  nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "fe25519"
-  ];
+  pythonImportsCheck = [ "fe25519" ];
 
   meta = with lib; {
     description = "Python field operations for Curve25519's prime";

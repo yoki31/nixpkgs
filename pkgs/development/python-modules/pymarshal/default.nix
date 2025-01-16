@@ -1,42 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, bson
-, pytest
-, pytest-cov
-, pytest-runner
-, pytestCheckHook
-, pyyaml
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  bson,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pyyaml,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pymarshal";
   version = "2.2.0";
-  disabled = pythonOlder "3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "stargateaudio";
     repo = pname;
     rev = version;
-    sha256 = "sha256-Ds8JV2mtLRcKXBvPs84Hdj3MxxqpeV5muKCSlAFCj1A=";
+    hash = "sha256-Ds8JV2mtLRcKXBvPs84Hdj3MxxqpeV5muKCSlAFCj1A=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    pytest-runner
-  ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "'pytest-runner'" ""
+  '';
 
-  propagatedBuildInputs = [
-    bson
-  ];
+  build-system = [ setuptools ];
 
-  checkInputs = [
+  dependencies = [ bson ];
+
+  nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
     bson
-    pytest
-    pytest-cov
     pyyaml
   ];
 

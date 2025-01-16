@@ -1,23 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, autopage
-, cmd2
-, pbr
-, prettytable
-, pyparsing
-, pyyaml
-, stevedore
-, callPackage
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  autopage,
+  cmd2,
+  importlib-metadata,
+  openstackdocstheme,
+  pbr,
+  prettytable,
+  pyparsing,
+  pyyaml,
+  setuptools,
+  stevedore,
+  sphinxHook,
+  callPackage,
 }:
 
 buildPythonPackage rec {
   pname = "cliff";
-  version = "3.10.0";
+  version = "4.8.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "c68aac08d0d25853234a38fdbf1f33503849af3d5d677a4d0aacd42b0be6a4a1";
+    hash = "sha256-I+/1AuYDzwqoQerqZmKkLNMGQWkWKz5ZayAiZADjTf0=";
   };
 
   postPatch = ''
@@ -26,9 +32,18 @@ buildPythonPackage rec {
     rm test-requirements.txt
   '';
 
-  propagatedBuildInputs = [
+  build-system = [
+    openstackdocstheme
+    setuptools
+    sphinxHook
+  ];
+
+  sphinxBuilders = [ "man" ];
+
+  dependencies = [
     autopage
     cmd2
+    importlib-metadata
     pbr
     prettytable
     pyparsing

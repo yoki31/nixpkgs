@@ -1,33 +1,60 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPy3k
-, oset
-, pybtex
-, pybtex-docutils
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  setuptools,
+  docutils,
+  importlib-metadata,
+  oset,
+  pybtex,
+  pybtex-docutils,
+  sphinx,
+  sphinx-autoapi,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
-  version = "2.4.1";
   pname = "sphinxcontrib-bibtex";
+  version = "2.6.3";
+  pyproject = true;
 
-  disabled = !isPy3k;
+  disabled = pythonOlder "3.7";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "282223309bbaf34cd20a8fe1ba346fe8642f403a8930607e77a8cb08ae81fc5f";
+  src = fetchFromGitHub {
+    owner = "mcmtroffaes";
+    repo = "sphinxcontrib-bibtex";
+    tag = version;
+    hash = "sha256-cqz5Jamtlflo5rFhWPCPlYoymApUtXPG4oTRjfDI+WY=";
   };
 
-  propagatedBuildInputs = [ oset pybtex pybtex-docutils sphinx ];
+  build-system = [ setuptools ];
 
-  doCheck = false;
+  dependencies =
+    [
+      docutils
+      oset
+      pybtex
+      pybtex-docutils
+      sphinx
+    ]
+    ++ lib.optionals (pythonOlder "3.10") [
+      importlib-metadata
+    ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    sphinx-autoapi
+  ];
+
   pythonImportsCheck = [ "sphinxcontrib.bibtex" ];
 
+  pythonNamespaces = [ "sphinxcontrib" ];
+
   meta = with lib; {
-    description = "A Sphinx extension for BibTeX style citations";
+    description = "Sphinx extension for BibTeX style citations";
     homepage = "https://github.com/mcmtroffaes/sphinxcontrib-bibtex";
     license = licenses.bsd2;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    maintainers = [ ];
   };
 }

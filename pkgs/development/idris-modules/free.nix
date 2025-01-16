@@ -1,9 +1,10 @@
-{ build-idris-package
-, fetchFromGitHub
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  lib,
 }:
-build-idris-package  {
-  name = "free";
+build-idris-package {
+  pname = "free";
   version = "2017-07-03";
 
   ipkgName = "idris-free";

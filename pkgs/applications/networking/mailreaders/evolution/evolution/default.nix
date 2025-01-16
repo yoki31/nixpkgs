@@ -1,52 +1,56 @@
-{ lib, stdenv
-, cmake
-, ninja
-, intltool
-, fetchurl
-, libxml2
-, webkitgtk
-, highlight
-, pkg-config
-, gtk3
-, glib
-, libnotify
-, libpst
-, gspell
-, evolution-data-server
-, libgdata
-, libgweather
-, glib-networking
-, gsettings-desktop-schemas
-, wrapGAppsHook
-, itstool
-, shared-mime-info
-, libical
-, db
-, gcr
-, sqlite
-, gnome
-, librsvg
-, gdk-pixbuf
-, libsecret
-, nss
-, nspr
-, icu
-, libcanberra-gtk3
-, bogofilter
-, gst_all_1
-, procps
-, p11-kit
-, openldap
-, spamassassin
+{
+  lib,
+  stdenv,
+  cmake,
+  ninja,
+  intltool,
+  fetchurl,
+  libxml2,
+  webkitgtk_4_1,
+  highlight,
+  pkg-config,
+  gtk3,
+  glib,
+  libnotify,
+  libpst,
+  gspell,
+  evolution-data-server,
+  libgweather,
+  glib-networking,
+  gsettings-desktop-schemas,
+  wrapGAppsHook3,
+  itstool,
+  shared-mime-info,
+  libical,
+  db,
+  sqlite,
+  adwaita-icon-theme,
+  gnome,
+  gnome-desktop,
+  librsvg,
+  gdk-pixbuf,
+  libsecret,
+  nss,
+  nspr,
+  icu,
+  libcanberra-gtk3,
+  geocode-glib_2,
+  cmark,
+  bogofilter,
+  gst_all_1,
+  procps,
+  p11-kit,
+  openldap,
+  spamassassin,
 }:
 
 stdenv.mkDerivation rec {
   pname = "evolution";
-  version = "3.42.3";
+  version = "3.54.3";
 
   src = fetchurl {
     url = "mirror://gnome/sources/evolution/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "RGKeagIojsEApm/VlBOgaLa5zWJL7TJVqimhZuom0LY=";
+    hash = "sha256-dGz4HvXDJa8X9Tsvq0bWcmDzsT2gFNiZTUrZ6Ea4Ves=";
   };
 
   nativeBuildInputs = [
@@ -56,19 +60,18 @@ stdenv.mkDerivation rec {
     libxml2
     ninja
     pkg-config
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
-    gnome.adwaita-icon-theme
+    adwaita-icon-theme
     bogofilter
     db
     evolution-data-server
-    gcr
     gdk-pixbuf
     glib
     glib-networking
-    gnome.gnome-desktop
+    gnome-desktop
     gsettings-desktop-schemas
     gst_all_1.gst-plugins-base
     gst_all_1.gstreamer
@@ -77,7 +80,8 @@ stdenv.mkDerivation rec {
     highlight
     icu
     libcanberra-gtk3
-    libgdata
+    geocode-glib_2
+    cmark
     libgweather
     libical
     libnotify
@@ -91,7 +95,7 @@ stdenv.mkDerivation rec {
     procps
     shared-mime-info
     sqlite
-    webkitgtk
+    webkitgtk_4_1
   ];
 
   propagatedUserEnvPkgs = [
@@ -100,7 +104,6 @@ stdenv.mkDerivation rec {
 
   cmakeFlags = [
     "-DENABLE_AUTOAR=OFF"
-    "-DENABLE_LIBCRYPTUI=OFF"
     "-DENABLE_YTNEF=OFF"
     "-DWITH_SPAMASSASSIN=${spamassassin}/bin/spamassassin"
     "-DWITH_SA_LEARN=${spamassassin}/bin/sa-learn"
@@ -121,11 +124,13 @@ stdenv.mkDerivation rec {
     };
   };
 
+  PKG_CONFIG_CAMEL_1_2_CAMEL_PROVIDERDIR = "${placeholder "out"}/lib/evolution-data-server/camel-providers";
   PKG_CONFIG_LIBEDATASERVERUI_1_2_UIMODULEDIR = "${placeholder "out"}/lib/evolution-data-server/ui-modules";
 
   meta = with lib; {
-    homepage = "https://wiki.gnome.org/Apps/Evolution";
+    homepage = "https://gitlab.gnome.org/GNOME/evolution";
     description = "Personal information management application that provides integrated mail, calendaring and address book functionality";
+    mainProgram = "evolution";
     maintainers = teams.gnome.members;
     license = licenses.lgpl2Plus;
     platforms = platforms.linux;

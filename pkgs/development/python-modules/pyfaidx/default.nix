@@ -1,52 +1,60 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, nose
-, numpy
-, setuptools-scm
-, six
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  glibcLocales,
+  importlib-metadata,
+  packaging,
+  htslib,
+  fsspec,
+  pytestCheckHook,
+  biopython,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "pyfaidx";
-  version = "0.6.3.1";
-  format = "setuptools";
+  version = "0.8.1.3";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "93adf036a75e08dc9b1dcd59de6a4db2f65a48c603edabe2e499764b6535ed50";
+  src = fetchFromGitHub {
+    owner = "mdshw5";
+    repo = "pyfaidx";
+    tag = "v${version}";
+    hash = "sha256-PKcopIu/0ko4Jl2+G0ZivZXvMwACeIFFFlPt5dlDDfQ=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
-    six
+  dependencies = [
+    importlib-metadata
+    packaging
   ];
 
-  checkInputs = [
-    nose
-    numpy
+  nativeCheckInputs = [
     pytestCheckHook
+    biopython
+    htslib
+    fsspec
+    glibcLocales
   ];
 
-  disabledTests = [
-    # PyPI releases don't ship all the needed files for the tests
-    "test_index_zero_length"
-    "test_fetch_zero_length"
-    "test_read_back_index"
-  ];
+  pythonImportsCheck = [ "pyfaidx" ];
 
-  pythonImportsCheck = [
-    "pyfaidx"
-  ];
+  preCheck = ''
+    bgzip --keep tests/data/genes.fasta
+  '';
 
-  meta = with lib; {
-    homepage = "https://github.com/mdshw5/pyfaidx";
+  meta = {
     description = "Python classes for indexing, retrieval, and in-place modification of FASTA files using a samtools compatible index";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ jbedo ];
+    homepage = "https://github.com/mdshw5/pyfaidx";
+    changelog = "https://github.com/mdshw5/pyfaidx/releases/tag/v${version}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ jbedo ];
+    mainProgram = "faidx";
   };
 }

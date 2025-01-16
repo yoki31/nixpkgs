@@ -1,16 +1,34 @@
-{ lib, buildPythonPackage, fetchPypi, pkg-config, fuse }:
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pkg-config,
+  setuptools,
+  fuse,
+}:
 
 buildPythonPackage rec {
   pname = "fuse-python";
-  version = "1.0.4";
+  version = "1.0.9";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "b9a69c38b3909ffd35d77cb1a73ebfdc3a103a6d4cdd20c86c70ed1141771580";
+    inherit version;
+    pname = "fuse_python";
+    hash = "sha256-ntWVd8NqshjXAKooOfAh8SwlKzVxhgV1crmOGbwqhYk=";
   };
 
-  buildInputs = [ fuse ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail 'pkg-config' "${stdenv.cc.targetPrefix}pkg-config"
+  '';
+
   nativeBuildInputs = [ pkg-config ];
+
+  build-system = [ setuptools ];
+
+  buildInputs = [ fuse ];
 
   # no tests implemented
   doCheck = false;
@@ -18,6 +36,7 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "fuse" ];
 
   meta = with lib; {
+    broken = stdenv.hostPlatform.isDarwin;
     description = "Python bindings for FUSE";
     homepage = "https://github.com/libfuse/python-fuse";
     license = licenses.lgpl21;

@@ -1,66 +1,108 @@
-{ lib
-, buildPythonApplication
-, fetchPypi
-, poetry-core
-, gobject-introspection
-, pango
-, gtksourceview4
-, wrapGAppsHook
-, makeDesktopItem
-, copyDesktopItems
-, gaphas
-, generic
-, pycairo
-, pygobject3
-, python
-, tinycss2
+{
+  lib,
+  buildPythonApplication,
+  fetchPypi,
+  copyDesktopItems,
+  gobject-introspection,
+  poetry-core,
+  wrapGAppsHook4,
+  gtksourceview5,
+  libadwaita,
+  pango,
+  gaphas,
+  generic,
+  jedi,
+  pycairo,
+  pillow,
+  dulwich,
+  pydot,
+  defusedxml,
+  better-exceptions,
+  babel,
+  pygobject3,
+  tinycss2,
+  gtk4,
+  librsvg,
+  makeDesktopItem,
+  python,
+  nix-update-script,
 }:
 
 buildPythonApplication rec {
   pname = "gaphor";
-  version = "2.6.5";
-
-  format = "pyproject";
+  version = "2.27.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-IFsbWx5lblKsnEibVihM6ZPRoydXC+JM1gdZEUUTKxw=";
+    hash = "sha256-MsbEeOop6Osq2Hn6CkorsXt8/bTY//QHW/uCl0FEUN4=";
   };
+
+  pythonRelaxDeps = [ "defusedxml" ];
 
   nativeBuildInputs = [
-    poetry-core copyDesktopItems gobject-introspection wrapGAppsHook
+    copyDesktopItems
+    gobject-introspection
+    wrapGAppsHook4
   ];
 
-  # Setting gobject-introspection on booth nativeBuildInputs and
-  # buildInputs because of #56943. This recognizes pango, avoiding
-  # a "ValueError: Namespace PangoCairo not available".
-  buildInputs = [ gobject-introspection gtksourceview4 pango ];
+  buildInputs = [
+    gtksourceview5
+    pango
+    libadwaita
+  ];
 
-  propagatedBuildInputs = [
-    gaphas
-    generic
+  build-system = [ poetry-core ];
+
+  dependencies = [
     pycairo
     pygobject3
+    gaphas
+    generic
     tinycss2
+    babel
+    jedi
+    better-exceptions
+    pydot
+    pillow
+    defusedxml
+    dulwich
   ];
 
-  desktopItems = makeDesktopItem {
-    name = pname;
-    exec = "gaphor";
-    icon = "gaphor";
-    comment = meta.description;
-    desktopName = "Gaphor";
-  };
+  desktopItems = [
+    (makeDesktopItem {
+      name = pname;
+      exec = "gaphor";
+      icon = "gaphor";
+      comment = meta.description;
+      desktopName = "Gaphor";
+    })
+  ];
+
+  # Disable automatic wrapGAppsHook4 to prevent double wrapping
+  dontWrapGApps = true;
 
   postInstall = ''
     install -Dm644 $out/${python.sitePackages}/gaphor/ui/icons/hicolor/scalable/apps/org.gaphor.Gaphor.svg $out/share/pixmaps/gaphor.svg
   '';
 
+  preFixup = ''
+    makeWrapperArgs+=(
+      "''${gappsWrapperArgs[@]}" \
+      --prefix XDG_DATA_DIRS : "${gtk4}/share/gsettings-schemas/${gtk4.name}/" \
+      --set GDK_PIXBUF_MODULE_FILE "${librsvg.out}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+    )
+  '';
+
+  passthru = {
+    updateScript = nix-update-script { };
+  };
+
   meta = with lib; {
     description = "Simple modeling tool written in Python";
-    maintainers = with maintainers; [ wolfangaukang ];
+    maintainers = [ ] ++ lib.teams.gnome-circle.members;
     homepage = "https://github.com/gaphor/gaphor";
     license = licenses.asl20;
-    platforms = [ "x86_64-linux" ];
+    platforms = lib.platforms.linux;
   };
 }

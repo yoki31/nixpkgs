@@ -1,38 +1,64 @@
-{ lib, stdenv, fetchFromGitHub, ocaml, findlib, which, sedlex_2, easy-format, xmlm, base64 }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  ocaml,
+  findlib,
+  which,
+  sedlex,
+  easy-format,
+  xmlm,
+  base64,
+}:
 
-stdenv.mkDerivation rec {
-  version = "0.6.15";
-  pname = "piqi";
-  name = "ocaml${ocaml.version}-${pname}-${version}";
+lib.throwIf (lib.versionAtLeast ocaml.version "5.0")
+  "piqi is not available for OCaml ${ocaml.version}"
 
-  src = fetchFromGitHub {
-    owner = "alavrik";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "0v04hs85xv6d4ysqxyv1dik34dx49yab9shpi4x7iv19qlzl7csb";
-  };
+  stdenv.mkDerivation
+  rec {
+    version = "0.6.16";
+    pname = "piqi";
+    name = "ocaml${ocaml.version}-${pname}-${version}";
 
-  buildInputs = [ ocaml findlib which ];
-  propagatedBuildInputs = [ sedlex_2 xmlm easy-format base64 ];
+    src = fetchFromGitHub {
+      owner = "alavrik";
+      repo = pname;
+      rev = "v${version}";
+      sha256 = "sha256-qE+yybTn+kzbY0h8udhZYO+GwQPI/J/6p3LMmF12cFU=";
+    };
 
-  patches = [ ./no-ocamlpath-override.patch ];
+    nativeBuildInputs = [
+      ocaml
+      findlib
+      which
+    ];
+    propagatedBuildInputs = [
+      sedlex
+      xmlm
+      easy-format
+      base64
+    ];
 
-  createFindlibDestdir = true;
+    strictDeps = true;
 
-  buildPhase = ''
-    make
-    make -C piqilib piqilib.cma
-  '';
+    patches = [
+      ./no-stream.patch
+      ./no-ocamlpath-override.patch
+    ];
 
-  installPhase = ''
-    make install;
-    make ocaml-install;
-  '';
+    createFindlibDestdir = true;
 
-  meta = with lib; {
-    homepage = "https://piqi.org";
-    description = "Universal schema language and a collection of tools built around it";
-    license = licenses.asl20;
-    maintainers = [ maintainers.maurer ];
-  };
-}
+    postBuild = "make -C piqilib piqilib.cma";
+
+    installTargets = [
+      "install"
+      "ocaml-install"
+    ];
+
+    meta = with lib; {
+      homepage = "https://piqi.org";
+      description = "Universal schema language and a collection of tools built around it";
+      license = licenses.asl20;
+      maintainers = [ maintainers.maurer ];
+    };
+  }

@@ -1,23 +1,65 @@
-{ lib, buildPythonPackage, fetchPypi, numpy, nose, pyyaml }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+
+  # build-system
+  scikit-build-core,
+  cmake,
+  pathspec,
+  ninja,
+  pyproject-metadata,
+  setuptools-scm,
+
+  # dependencies
+  numpy,
+
+  # tests
+  pytestCheckHook,
+  pyyaml,
+}:
 
 buildPythonPackage rec {
   pname = "spglib";
-  version = "1.16.3";
+  version = "2.5.0";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "ff1420967d64c2d4f0d747886116a6836d9b473454cdd73d560dbfe973a8a038";
+    hash = "sha256-+LtjiJe+kbnb1MCF2f3h9pBI9ZSeIPODLLlDjldBjUs=";
   };
+
+  nativeBuildInputs = [
+    scikit-build-core
+    cmake
+    pathspec
+    ninja
+    pyproject-metadata
+    setuptools-scm
+  ];
+
+  dontUseCmakeConfigure = true;
+
+  postPatch = ''
+    # relax v2 constrain in [build-system] intended for binary backward compat
+    substituteInPlace pyproject.toml \
+      --replace-fail "numpy~=2.0" "numpy"
+  '';
 
   propagatedBuildInputs = [ numpy ];
 
-  checkInputs = [ nose pyyaml ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    pyyaml
+  ];
+
+  pythonImportsCheck = [ "spglib" ];
 
   meta = with lib; {
     description = "Python bindings for C library for finding and handling crystal symmetries";
-    homepage = "https://atztogo.github.io/spglib";
+    homepage = "https://spglib.github.io/spglib/";
+    changelog = "https://github.com/spglib/spglib/raw/v${version}/ChangeLog";
     license = licenses.bsd3;
     maintainers = with maintainers; [ psyanticy ];
   };
 }
-

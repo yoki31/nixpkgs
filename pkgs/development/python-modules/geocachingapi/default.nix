@@ -1,32 +1,35 @@
-{ lib
-, aiohttp
-, backoff
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools-scm
-, yarl
+{
+  lib,
+  aiohttp,
+  backoff,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  reverse-geocode,
+  setuptools-scm,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "geocachingapi";
-  version = "0.1.0";
+  version = "0.3.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "Sholofly";
     repo = "geocachingapi-python";
-    rev = version;
-    sha256 = "1vdknsxd7rvw6g5lwxlxj97l9ic8cch8rdki3aczs6xzw5adxhcs";
+    tag = version;
+    hash = "sha256-zme1jqn3qtoo39zyj4dKxt9M7gypMqJu0bfgY1iYhjs=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  SETUPTOOLS_SCM_PRETEND_VERSION = version;
-
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     backoff
+    reverse-geocode
     yarl
   ];
 
@@ -38,7 +41,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python API to control the Geocaching API";
     homepage = "https://github.com/Sholofly/geocachingapi-python";
-    license = with licenses; [ mit ];
+    changelog = "https://github.com/Sholofly/geocachingapi-python/releases/tag/${version}";
+    license = licenses.mit;
     maintainers = with maintainers; [ fab ];
   };
 }

@@ -1,76 +1,56 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchpatch
-, nix-update-script
-, pkg-config
-, meson
-, python3
-, ninja
-, vala
-, gtk3
-, libgee
-, libhandy
-, granite
-, gettext
-, elementary-icon-theme
-, wrapGAppsHook
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  pkg-config,
+  meson,
+  ninja,
+  sassc,
+  vala,
+  glib,
+  gtk4,
+  libadwaita,
+  libgee,
+  granite7,
+  wrapGAppsHook4,
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard";
-  version = "6.0.0";
+  version = "8.0.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = pname;
     rev = version;
-    sha256 = "02dfsrfmr297cxpyd5m3746ihcgjyfnb3d42ng9m4ljdvh0dxgim";
+    sha256 = "sha256-iRxxXAUuSJzhX6uj1YeEzMUihWmrVZ6BFfayfteg/c8=";
   };
 
   nativeBuildInputs = [
-    gettext
     meson
     ninja
     pkg-config
-    python3
+    sassc
     vala
-    wrapGAppsHook
+    wrapGAppsHook4
   ];
 
-  buildInputs = [
-    elementary-icon-theme
-    granite
-    gtk3
+  propagatedBuildInputs = [
+    # Required by switchboard-3.pc.
+    glib
+    granite7
+    gtk4
+    libadwaita
     libgee
-    libhandy
   ];
 
   patches = [
     ./plugs-path-env.patch
-    # Upstream code not respecting our localedir
-    # https://github.com/elementary/switchboard/pull/214
-    (fetchpatch {
-      url = "https://github.com/elementary/switchboard/commit/8d6b5f4cbbaf134880252afbf1e25d70033e6402.patch";
-      sha256 = "0gwq3wwj45jrnlhsmxfclbjw6xjr8kf6pp3a84vbnrazw76lg5nc";
-    })
-    # Fix build with meson 0.61
-    # https://github.com/elementary/switchboard/pull/226
-    (fetchpatch {
-      url = "https://github.com/elementary/switchboard/commit/ecf2a6c42122946cc84150f6927ef69c1f67c909.patch";
-      sha256 = "sha256-J62tMeDfOpliBLHMSa3uBGTc0RBNzC6eDjDBDYySL+0=";
-    })
   ];
 
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
-  '';
-
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {
@@ -79,6 +59,6 @@ stdenv.mkDerivation rec {
     license = licenses.lgpl21Plus;
     platforms = platforms.linux;
     maintainers = teams.pantheon.members;
-    mainProgram = "io.elementary.switchboard";
+    mainProgram = "io.elementary.settings";
   };
 }

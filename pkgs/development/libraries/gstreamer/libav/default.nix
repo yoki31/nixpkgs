@@ -5,21 +5,21 @@
 , ninja
 , pkg-config
 , python3
+, gstreamer
 , gst-plugins-base
 , gettext
-, libav
+, ffmpeg-headless
+# Checks meson.is_cross_build(), so even canExecute isn't enough.
+, enableDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform, hotdoc
 }:
-
-# Note that since gst-libav-1.6, libav is actually ffmpeg. See
-# https://gstreamer.freedesktop.org/releases/1.6/ for more info.
 
 stdenv.mkDerivation rec {
   pname = "gst-libav";
-  version = "1.18.5";
+  version = "1.24.10";
 
   src = fetchurl {
     url = "https://gstreamer.freedesktop.org/src/${pname}/${pname}-${version}.tar.xz";
-    sha256 = "sha256-gi4AipEOndE67b3Y3GP+3vQEDA7i6Se6sxEuneaTpUg=";
+    hash = "sha256-TPLi2CBOVLqK+VGai5t/+m6VGnCHr6Df6DwSXUm7tfs=";
   };
 
   outputs = [ "out" "dev" ];
@@ -30,15 +30,18 @@ stdenv.mkDerivation rec {
     gettext
     pkg-config
     python3
+  ] ++ lib.optionals enableDocumentation [
+    hotdoc
   ];
 
   buildInputs = [
+    gstreamer
     gst-plugins-base
-    libav
+    ffmpeg-headless
   ];
 
   mesonFlags = [
-    "-Ddoc=disabled" # `hotdoc` not packaged in nixpkgs as of writing
+    (lib.mesonEnable "doc" enableDocumentation)
   ];
 
   postPatch = ''
@@ -47,9 +50,10 @@ stdenv.mkDerivation rec {
   '';
 
   meta = with lib; {
-    description = "FFmpeg/libav plugin for GStreamer";
+    description = "FFmpeg plugin for GStreamer";
     homepage = "https://gstreamer.freedesktop.org";
     license = licenses.lgpl2Plus;
     platforms = platforms.unix;
+    maintainers = [ ];
   };
 }

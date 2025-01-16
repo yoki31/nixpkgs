@@ -1,36 +1,40 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, substituteAll
-, graphviz
-, xdg-utils
-, makeFontsConf
-, freefont_ttf
-, mock
-, pytest
-, pytest-mock
-, python
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  pythonOlder,
+  fetchFromGitHub,
+  substituteAll,
+  graphviz-nox,
+  xdg-utils,
+  makeFontsConf,
+  freefont_ttf,
+  setuptools,
+  mock,
+  pytest_7,
+  pytest-mock,
+  python,
 }:
 
 buildPythonPackage rec {
   pname = "graphviz";
-  version = "0.19.1";
+  version = "0.20.3";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   # patch does not apply to PyPI tarball due to different line endings
   src = fetchFromGitHub {
     owner = "xflr6";
     repo = "graphviz";
-    rev = version;
-    sha256 = "sha256-pE1lsx/r/BjvW5W2niDx/UeRXxx4kvCyHzAUAG3bdGc=";
+    tag = version;
+    hash = "sha256-IqjqcBEL4BK/VfRjdxJ9t/DkG8OMAoXJxbW5JXpALuw=";
   };
 
   patches = [
     (substituteAll {
       src = ./paths.patch;
-      inherit graphviz;
+      graphviz = graphviz-nox;
       xdgutils = xdg-utils;
     })
   ];
@@ -40,13 +44,13 @@ buildPythonPackage rec {
   '';
 
   # Fontconfig error: Cannot load default config file
-  FONTCONFIG_FILE = makeFontsConf {
-    fontDirectories = [ freefont_ttf ];
-  };
+  FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ freefont_ttf ]; };
 
-  checkInputs = [
+  build-system = [ setuptools ];
+
+  nativeCheckInputs = [
     mock
-    pytest
+    pytest_7
     pytest-mock
   ];
 
@@ -58,11 +62,14 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
+  # Too many failures due to attempting to connect to com.apple.fonts daemon
+  doCheck = !stdenv.hostPlatform.isDarwin;
+
   meta = with lib; {
     description = "Simple Python interface for Graphviz";
     homepage = "https://github.com/xflr6/graphviz";
+    changelog = "https://github.com/xflr6/graphviz/blob/${src.rev}/CHANGES.rst";
     license = licenses.mit;
     maintainers = with maintainers; [ dotlambda ];
   };
-
 }

@@ -1,21 +1,30 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
-
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+  nixosTests,
+}:
 buildGoModule rec {
   pname = "headscale";
-  version = "0.12.3";
+  version = "0.23.0";
 
   src = fetchFromGitHub {
     owner = "juanfont";
     repo = "headscale";
     rev = "v${version}";
-    sha256 = "sha256-0SIQninNnJZ6KN5RKIMJzJQZRV7ThfJZal1lhsBnTIY=";
+    hash = "sha256-5tlnVNpn+hJayxHjTpbOO3kRInOYOFz0pe9pwjXZlBE=";
   };
 
-  vendorSha256 = "sha256-n5E6pzswenMJrThCys0UM2LVXKDXqCXDW7uR0V4H56w=";
+  # Merged post-v0.23.0, so should be removed with next release.
+  patches = [ ./patches/config-loosen-up-BaseDomain-and-ServerURL-checks.patch ];
 
-  ldflags = [ "-s" "-w" "-X github.com/juanfont/headscale/cmd/headscale/cli.Version=v${version}" ];
+  vendorHash = "sha256-+8dOxPG/Q+wuHgRwwWqdphHOuop0W9dVyClyQuh7aRc=";
 
-  nativeBuildInputs = [ installShellFiles ];
+  ldflags = ["-s" "-w" "-X github.com/juanfont/headscale/cmd/headscale/cli.Version=v${version}"];
+
+  nativeBuildInputs = [installShellFiles];
+  checkFlags = ["-short"];
 
   postInstall = ''
     installShellCompletion --cmd headscale \
@@ -24,9 +33,11 @@ buildGoModule rec {
       --zsh <($out/bin/headscale completion zsh)
   '';
 
+  passthru.tests = {inherit (nixosTests) headscale;};
+
   meta = with lib; {
     homepage = "https://github.com/juanfont/headscale";
-    description = "An open source, self-hosted implementation of the Tailscale control server";
+    description = "Open source, self-hosted implementation of the Tailscale control server";
     longDescription = ''
       Tailscale is a modern VPN built on top of Wireguard. It works like an
       overlay network between the computers of your networks - using all kinds
@@ -44,6 +55,7 @@ buildGoModule rec {
       Headscale implements this coordination server.
     '';
     license = licenses.bsd3;
-    maintainers = with maintainers; [ nkje jk kradalby ];
+    mainProgram = "headscale";
+    maintainers = with maintainers; [nkje jk kradalby misterio77 ghuntley];
   };
 }

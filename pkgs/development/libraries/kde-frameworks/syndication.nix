@@ -1,10 +1,12 @@
-{ mkDerivation, lib
-, extra-cmake-modules
-, kcodecs
+{
+  mkDerivation,
+  lib,
+  extra-cmake-modules,
+  kcodecs,
 }:
 
 mkDerivation {
-  name = "syndication";
+  pname = "syndication";
   meta.maintainers = [ lib.maintainers.bkchr ];
   nativeBuildInputs = [ extra-cmake-modules ];
   buildInputs = [ kcodecs ];

@@ -1,74 +1,78 @@
-{ mkDerivation, lib, fetchFromGitHub, callPackage
-, pkg-config, cmake, ninja, python3, wrapGAppsHook, wrapQtAppsHook
-, qtbase, qtimageformats, gtk3, libsForQt5, lz4, xxHash
-, ffmpeg, openalSoft, minizip, libopus, alsa-lib, libpulseaudio, range-v3
-, tl-expected, hunspell, glibmm, webkitgtk
-# Transitive dependencies:
-, pcre, xorg, util-linux, libselinux, libsepol, libepoxy
-, at-spi2-core, libXtst, libthai, libdatrie
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch,
+  libsForQt5,
+  yasm,
+  withWebkit ? true,
 }:
 
-with lib;
-
 let
-  tg_owt = callPackage ./tg_owt.nix {};
-in mkDerivation rec {
+  telegram-desktop = libsForQt5.callPackage ../telegram-desktop { inherit stdenv; };
+  version = "1.4.9";
+  tg_owt = telegram-desktop.tg_owt.overrideAttrs (oldAttrs: {
+    version = "0-unstable-2024-06-15";
+
+    src = fetchFromGitHub {
+      owner = "desktop-app";
+      repo = "tg_owt";
+      rev = "c9cc4390ab951f2cbc103ff783a11f398b27660b";
+      hash = "sha256-FfWmSYaeryTDbsGJT3R7YK1oiyJcrR7YKKBOF+9PmpY=";
+      fetchSubmodules = true;
+    };
+
+    patches = (oldAttrs.patches or [ ]) ++ [
+      (fetchpatch {
+        url = "https://webrtc.googlesource.com/src/+/e7d10047096880feb5e9846375f2da54aef91202%5E%21/?format=TEXT";
+        decode = "base64 -d";
+        stripLen = 1;
+        extraPrefix = "src/";
+        hash = "sha256-goxnuRRbwcdfIk1jFaKGiKCTCYn2saEj7En1Iyglzko=";
+      })
+    ];
+
+    nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ yasm ];
+  });
+in
+telegram-desktop.override {
   pname = "kotatogram-desktop";
-  version = "1.4.1";
+  inherit withWebkit;
+  unwrapped = (telegram-desktop.unwrapped.override { inherit tg_owt; }).overrideAttrs {
+    pname = "kotatogram-desktop-unwrapped";
+    version = "${version}-unstable-2024-09-27";
 
-  src = fetchFromGitHub {
-    owner = "kotatogram";
-    repo = "kotatogram-desktop";
-    rev = "k${version}";
-    sha256 = "07z56gz3sk45n5j0gw9p9mxrbwixxsmp7lvqc6lqnxmglz6knc1d";
-    fetchSubmodules = true;
-  };
+    src = fetchFromGitHub {
+      owner = "kotatogram";
+      repo = "kotatogram-desktop";
+      rev = "0581eb6219343b3cfcbb81124b372df1039b7568";
+      hash = "sha256-rvn8GZmHdMkVutLUe/LmUNIawlb9VgU3sYhPwZ2MWsI=";
+      fetchSubmodules = true;
+    };
 
-  postPatch = ''
-    substituteInPlace Telegram/CMakeLists.txt \
-      --replace '"''${TDESKTOP_LAUNCHER_BASENAME}.appdata.xml"' '"''${TDESKTOP_LAUNCHER_BASENAME}.metainfo.xml"'
-  '';
+    patches = [
+      ./macos-qt5.patch
+      (fetchpatch {
+        url = "https://gitlab.com/mnauw/cppgir/-/commit/c8bb1c6017a6f7f2e47bd10543aea6b3ec69a966.patch";
+        stripLen = 1;
+        extraPrefix = "cmake/external/glib/cppgir/";
+        hash = "sha256-8B4h3BTG8dIlt3+uVgBI569E9eCebcor9uohtsrZpnI=";
+      })
+    ];
 
-  # We want to run wrapProgram manually (with additional parameters)
-  dontWrapGApps = true;
-  dontWrapQtApps = true;
+    meta = with lib; {
+      description = "Kotatogram – experimental Telegram Desktop fork";
+      longDescription = ''
+        Unofficial desktop client for the Telegram messenger, based on Telegram Desktop.
 
-  nativeBuildInputs = [ pkg-config cmake ninja python3 wrapGAppsHook wrapQtAppsHook ];
-
-  buildInputs = [
-    qtbase qtimageformats gtk3 libsForQt5.kwayland libsForQt5.libdbusmenu lz4 xxHash
-    ffmpeg openalSoft minizip libopus alsa-lib libpulseaudio range-v3
-    tl-expected hunspell glibmm webkitgtk
-    tg_owt
-    # Transitive dependencies:
-    pcre xorg.libXdmcp util-linux libselinux libsepol libepoxy
-    at-spi2-core libXtst libthai libdatrie
-  ];
-
-  cmakeFlags = [ "-DTDESKTOP_API_TEST=ON" ];
-
-  postFixup = ''
-    # We also use gappsWrapperArgs from wrapGAppsHook.
-    wrapProgram $out/bin/kotatogram-desktop \
-      "''${gappsWrapperArgs[@]}" \
-      "''${qtWrapperArgs[@]}"
-  '';
-
-  passthru = {
-    inherit tg_owt;
-  };
-
-  meta = {
-    description = "Kotatogram – experimental Telegram Desktop fork";
-    longDescription = ''
-      Unofficial desktop client for the Telegram messenger, based on Telegram Desktop.
-
-      It contains some useful (or purely cosmetic) features, but they could be unstable. A detailed list is available here: https://kotatogram.github.io/changes
-    '';
-    license = licenses.gpl3;
-    platforms = platforms.linux;
-    homepage = "https://kotatogram.github.io";
-    changelog = "https://github.com/kotatogram/kotatogram-desktop/releases/tag/k{ver}";
-    maintainers = with maintainers; [ ilya-fedin ];
+        It contains some useful (or purely cosmetic) features, but they could be unstable. A detailed list is available here: https://kotatogram.github.io/changes
+      '';
+      license = licenses.gpl3Only;
+      platforms = platforms.all;
+      homepage = "https://kotatogram.github.io";
+      changelog = "https://github.com/kotatogram/kotatogram-desktop/releases/tag/k${version}";
+      maintainers = with maintainers; [ ilya-fedin ];
+      mainProgram = if stdenv.hostPlatform.isLinux then "kotatogram-desktop" else "Kotatogram";
+    };
   };
 }

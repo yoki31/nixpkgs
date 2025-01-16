@@ -1,43 +1,55 @@
-{ lib
-, buildPythonPackage
-, casttube
-, fetchPypi
-, isPy3k
-, protobuf
-, requests
-, zeroconf
+{
+  lib,
+  buildPythonPackage,
+  casttube,
+  fetchPypi,
+  pythonOlder,
+  protobuf,
+  setuptools,
+  wheel,
+  zeroconf,
 }:
 
 buildPythonPackage rec {
   pname = "pychromecast";
-  version = "10.2.2";
-  format = "setuptools";
+  version = "14.0.5";
+  pyproject = true;
 
-  disabled = !isPy3k;
+  disabled = pythonOlder "3.11";
 
   src = fetchPypi {
     pname = "PyChromecast";
     inherit version;
-    sha256 = "bd1dbb9383ed549d42d12f337a6c664a9088b4910ebb3f11de6fe15f397e7efd";
+    hash = "sha256-qGce5OpKcJXi4GcOIhUUXsHj4KoHN/901kiuTcJosrE=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools~=65.6" "setuptools" \
+      --replace-fail "wheel~=0.37.1" "wheel" \
+      --replace-fail "protobuf>=4.25.1" "protobuf"
+  '';
+
+  nativeBuildInputs = [
+    setuptools
+    wheel
+  ];
 
   propagatedBuildInputs = [
     casttube
     protobuf
-    requests
     zeroconf
   ];
 
   # no tests available
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pychromecast"
-  ];
+  pythonImportsCheck = [ "pychromecast" ];
 
   meta = with lib; {
     description = "Library for Python to communicate with the Google Chromecast";
     homepage = "https://github.com/home-assistant-libs/pychromecast";
+    changelog = "https://github.com/home-assistant-libs/pychromecast/releases/tag/${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ abbradar ];
     platforms = platforms.unix;

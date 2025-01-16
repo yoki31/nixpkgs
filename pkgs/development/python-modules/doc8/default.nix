@@ -1,52 +1,58 @@
-{ lib
-, buildPythonPackage
-, chardet
-, docutils
-, fetchPypi
-, pbr
-, pygments
-, pytestCheckHook
-, pythonOlder
-, restructuredtext_lint
-, stevedore
+{
+  lib,
+  buildPythonPackage,
+  chardet,
+  docutils,
+  fetchPypi,
+  pbr,
+  pygments,
+  pytestCheckHook,
+  pythonOlder,
+  restructuredtext-lint,
+  setuptools-scm,
+  stevedore,
+  wheel,
 }:
 
 buildPythonPackage rec {
   pname = "doc8";
-  version = "0.10.1";
+  version = "1.1.2";
   format = "pyproject";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "376e50f4e70a1ae935416ddfcf93db35dd5d4cc0e557f2ec72f0667d0ace4548";
+    hash = "sha256-EiXzAUThzJfjiNuvf+PpltKJdHOlOm2uJo3d4hw1S5g=";
   };
 
-  buildInputs = [
-    pbr
+  nativeBuildInputs = [
+    setuptools-scm
+    wheel
   ];
+
+  buildInputs = [ pbr ];
 
   propagatedBuildInputs = [
     docutils
     chardet
     stevedore
-    restructuredtext_lint
+    restructuredtext-lint
     pygments
   ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "doc8"
-  ];
+  pythonRelaxDeps = [ "docutils" ];
+
+  pythonImportsCheck = [ "doc8" ];
 
   meta = with lib; {
     description = "Style checker for Sphinx (or other) RST documentation";
+    mainProgram = "doc8";
     homepage = "https://github.com/pycqa/doc8";
+    changelog = "https://github.com/PyCQA/doc8/releases/tag/v${version}";
     license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    maintainers = with maintainers; [ onny ];
   };
 }

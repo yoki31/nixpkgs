@@ -1,35 +1,97 @@
-{ lib, stdenv, fetchgit, sqlite, wxGTK30, gettext, wrapGAppsHook }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  appstream,
+  cmake,
+  fetchpatch,
+  gettext,
+  git,
+  makeWrapper,
+  lsb-release,
+  pkg-config,
+  wrapGAppsHook3,
+  curl,
+  sqlite,
+  wxGTK32,
+  gtk3,
+  darwin,
+}:
 
+stdenv.mkDerivation rec {
+  pname = "money-manager-ex";
+  version = "1.8.0";
 
-let
-  version = "1.3.3";
-in
-  stdenv.mkDerivation {
-    pname = "money-manager-ex";
-    inherit version;
+  src = fetchFromGitHub {
+    owner = "moneymanagerex";
+    repo = "moneymanagerex";
+    rev = "v${version}";
+    fetchSubmodules = true;
+    hash = "sha256-jV1jW0aFx95JpwzywEVajstnMKVcEtBdvyL7y6OLl+k=";
+  };
 
-    src = fetchgit {
-      url = "https://github.com/moneymanagerex/moneymanagerex.git";
-      rev = "refs/tags/v${version}";
-      sha256 = "0r4n93z3scv0i0zqflsxwv7j4yl8jy3gr0m4l30y1q8qv0zj9n74";
-    };
+  patches = [
+    (fetchpatch {
+      # https://github.com/moneymanagerex/moneymanagerex/pull/6716
+      name = "workaround-appstream-1.0.3.patch";
+      url = "https://github.com/moneymanagerex/moneymanagerex/commit/bb98eab92d95b7315d27f4e59ae59b50587106d8.patch";
+      hash = "sha256-98OyFO2nnGBRTIirxZ3jX1NPvsw5kVT8nsCSSmyfabo=";
+    })
+  ];
 
-    nativeBuildInputs = [
-      wrapGAppsHook
-    ];
+  postPatch = lib.optionalString (stdenv.hostPlatform.isLinux && !stdenv.hostPlatform.isx86_64) ''
+    substituteInPlace 3rd/CMakeLists.txt \
+      --replace "-msse4.2 -maes" ""
+  '';
 
-    buildInputs = [
+  nativeBuildInputs =
+    [
+      appstream # for appstreamcli
+      cmake
       gettext
-      sqlite
-      wxGTK30
-      wxGTK30.gtk
+      git
+      makeWrapper
+      pkg-config
+      wrapGAppsHook3
+      wxGTK32
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
+      lsb-release
     ];
 
-    meta = {
-      description = "Easy-to-use personal finance software";
-      homepage = "https://www.moneymanagerex.org/";
-      license = lib.licenses.gpl2Plus;
-      maintainers = with lib.maintainers; [viric];
-      platforms = with lib.platforms; linux;
-    };
-  }
+  buildInputs =
+    [
+      curl
+      sqlite
+      wxGTK32
+      gtk3
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      darwin.libobjc
+    ];
+
+  strictDeps = true;
+
+  env.NIX_CFLAGS_COMPILE = toString (
+    lib.optionals stdenv.cc.isClang [
+      "-Wno-deprecated-copy"
+      "-Wno-old-style-cast"
+      "-Wno-unused-parameter"
+    ]
+  );
+
+  postInstall = lib.optionalString stdenv.hostPlatform.isDarwin ''
+    mkdir -p $out/{Applications,bin}
+    mv $out/mmex.app $out/Applications
+    makeWrapper $out/{Applications/mmex.app/Contents/MacOS,bin}/mmex
+  '';
+
+  meta = {
+    description = "Easy-to-use personal finance software";
+    homepage = "https://www.moneymanagerex.org/";
+    license = lib.licenses.gpl2Plus;
+    maintainers = [ ];
+    platforms = with lib.platforms; unix;
+    mainProgram = "mmex";
+  };
+}

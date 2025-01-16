@@ -1,29 +1,33 @@
-{ buildPythonPackage, fetchFromGitHub, lib, netaddr, six, nose }:
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+  unittestCheckHook,
+  poetry-core,
+}:
 
 buildPythonPackage rec {
   pname = "pyrad";
-  version = "2.4";
+  version = "2.4-unstable-2024-07-24";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pyradius";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-oqgkE0xG/8cmLeRZdGoHkaHbjtByeJwzBJwEdxH8oNY=";
+    rev = "f42a57cb0e80de42949810057d36df7c4a6b5146";
+    hash = "sha256-5SPVeBL1oMZ/XXgKch2Hbk6BRU24HlVl4oXZ2agF1h8=";
   };
 
-  propagatedBuildInputs = [ netaddr six ];
-  checkInputs = [ nose ];
+  nativeBuildInputs = [ poetry-core ];
 
-  checkPhase = ''
-    nosetests -e testBind
-  '';
+  nativeCheckInputs = [ unittestCheckHook ];
 
   pythonImportsCheck = [ "pyrad" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python RADIUS Implementation";
-    homepage = "https://bitbucket.org/zzzeek/sqlsoup";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.globin ];
+    homepage = "https://github.com/pyradius/pyrad";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ drawbu ];
   };
 }

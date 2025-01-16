@@ -1,64 +1,201 @@
-{ buildPythonPackage
-, lib
-, fetchFromGitHub
-, pythonOlder
-, cookiecutter
-, filelock
-, huggingface-hub
-, importlib-metadata
-, regex
-, requests
-, numpy
-, packaging
-, protobuf
-, pyyaml
-, sacremoses
-, tokenizers
-, tqdm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  filelock,
+  huggingface-hub,
+  numpy,
+  protobuf,
+  packaging,
+  pyyaml,
+  regex,
+  requests,
+  tokenizers,
+  safetensors,
+  tqdm,
+
+  # optional-dependencies
+  diffusers,
+  scikit-learn,
+  tensorflow,
+  onnxconverter-common,
+  opencv4,
+  tf2onnx,
+  torch,
+  accelerate,
+  faiss,
+  datasets,
+  jax,
+  jaxlib,
+  flax,
+  optax,
+  ftfy,
+  onnxruntime,
+  onnxruntime-tools,
+  cookiecutter,
+  sagemaker,
+  fairscale,
+  optuna,
+  ray,
+  pydantic,
+  uvicorn,
+  fastapi,
+  starlette,
+  librosa,
+  phonemizer,
+  torchaudio,
+  pillow,
+  timm,
+  torchvision,
+  av,
+  sentencepiece,
 }:
 
 buildPythonPackage rec {
   pname = "transformers";
-  version = "4.15.0";
+  version = "4.48.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "huggingface";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "05qwrs040sqxk5fi44rjx0s5ba4897iw8l7yk8f1xzv314df05fg";
+    repo = "transformers";
+    tag = "v${version}";
+    hash = "sha256-jh2bMmvTC0G0kLJl7xXpsvXvBmlbZEDA88AfosoE9sA=";
   };
 
-  nativeBuildInputs = [ packaging ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    cookiecutter
+  dependencies = [
     filelock
     huggingface-hub
     numpy
-    protobuf
+    packaging
     pyyaml
     regex
     requests
-    sacremoses
     tokenizers
+    safetensors
     tqdm
-  ] ++ lib.optionals (pythonOlder "3.8") [ importlib-metadata ];
+  ];
+
+  optional-dependencies =
+    let
+      audio = [
+        librosa
+        # pyctcdecode
+        phonemizer
+        # kenlm
+      ];
+      vision = [ pillow ];
+    in
+    {
+      agents = [
+        diffusers
+        accelerate
+        datasets
+        torch
+        sentencepiece
+        opencv4
+        pillow
+      ];
+      ja = [
+        # fugashi
+        # ipadic
+        # rhoknp
+        # sudachidict_core
+        # sudachipy
+        # unidic
+        # unidic_lite
+      ];
+      sklearn = [ scikit-learn ];
+      tf = [
+        tensorflow
+        onnxconverter-common
+        tf2onnx
+        # tensorflow-text
+        # keras-nlp
+      ];
+      torch = [
+        torch
+        accelerate
+      ];
+      retrieval = [
+        faiss
+        datasets
+      ];
+      flax = [
+        jax
+        jaxlib
+        flax
+        optax
+      ];
+      tokenizers = [ tokenizers ];
+      ftfy = [ ftfy ];
+      onnxruntime = [
+        onnxruntime
+        onnxruntime-tools
+      ];
+      onnx = [
+        onnxconverter-common
+        tf2onnx
+        onnxruntime
+        onnxruntime-tools
+      ];
+      modelcreation = [ cookiecutter ];
+      sagemaker = [ sagemaker ];
+      deepspeed = [
+        # deepspeed
+        accelerate
+      ];
+      fairscale = [ fairscale ];
+      optuna = [ optuna ];
+      ray = [ ray ] ++ ray.optional-dependencies.tune;
+      # sigopt = [ sigopt ];
+      # integrations = ray ++ optuna ++ sigopt;
+      serving = [
+        pydantic
+        uvicorn
+        fastapi
+        starlette
+      ];
+      audio = audio;
+      speech = [ torchaudio ] ++ audio;
+      torch-speech = [ torchaudio ] ++ audio;
+      tf-speech = audio;
+      flax-speech = audio;
+      timm = [ timm ];
+      torch-vision = [ torchvision ] ++ vision;
+      # natten = [ natten ];
+      # codecarbon = [ codecarbon ];
+      video = [
+        av
+      ];
+      sentencepiece = [
+        sentencepiece
+        protobuf
+      ];
+    };
 
   # Many tests require internet access.
   doCheck = false;
 
-  postPatch = ''
-    sed -ri 's/tokenizers[=>]=[^"]+/tokenizers/g' setup.py src/transformers/dependency_versions_table.py
-  '';
-
   pythonImportsCheck = [ "transformers" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/huggingface/transformers";
-    description = "State-of-the-art Natural Language Processing for TensorFlow 2.0 and PyTorch";
-    changelog = "https://github.com/huggingface/transformers/releases/tag/v${version}";
-    license = licenses.asl20;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ pashashocky ];
+    description = "Natural Language Processing for TensorFlow 2.0 and PyTorch";
+    mainProgram = "transformers-cli";
+    changelog = "https://github.com/huggingface/transformers/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [
+      pashashocky
+      happysalada
+    ];
   };
 }

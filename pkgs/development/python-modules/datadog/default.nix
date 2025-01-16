@@ -1,38 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, decorator
-, requests
-, typing ? null
-, configparser
-, click
-, freezegun
-, mock
-, pytestCheckHook
-, pytest-vcr
-, python-dateutil
-, vcrpy
+{
+  lib,
+  buildPythonPackage,
+  click,
+  fetchPypi,
+  freezegun,
+  hatchling,
+  mock,
+  pytest-vcr,
+  pytestCheckHook,
+  python-dateutil,
+  pythonAtLeast,
+  pythonOlder,
+  requests,
+  vcrpy,
 }:
 
 buildPythonPackage rec {
   pname = "datadog";
-  version = "0.43.0";
+  version = "0.50.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1f2123083d9e1add6f238c62714b76ac2fc134d7d1c435cd82b976487b191b96";
+    hash = "sha256-F3JXdL8rsKSPHQltknB0ksGH8krgiWCvCwwvqXlY/VE=";
   };
 
-  postPatch = ''
-    find . -name '*.pyc' -exec rm {} \;
-  '';
+  nativeBuildInputs = [ hatchling ];
 
-  propagatedBuildInputs = [ decorator requests ]
-    ++ lib.optional (pythonOlder "3.5") typing
-    ++ lib.optional (pythonOlder "3.0") configparser;
+  propagatedBuildInputs = [ requests ];
 
-  checkInputs = [
+  __darwinAllowLocalNetworking = true;
+
+  nativeCheckInputs = [
     click
     freezegun
     mock
@@ -44,17 +45,28 @@ buildPythonPackage rec {
 
   disabledTestPaths = [
     "tests/performance"
+    # https://github.com/DataDog/datadogpy/issues/800
+    "tests/integration/api/test_*.py"
   ];
 
-  disabledTests = [
-    "test_default_settings_set"
-  ];
+  disabledTests =
+    [
+      "test_default_settings_set"
+      # https://github.com/DataDog/datadogpy/issues/746
+      "TestDogshell"
+    ]
+    ++ lib.optionals (pythonAtLeast "3.13") [
+      # https://github.com/DataDog/datadogpy/issues/880
+      "test_timed_coroutine"
+    ];
 
   pythonImportsCheck = [ "datadog" ];
 
   meta = with lib; {
-    description = "The Datadog Python library";
-    license = licenses.bsd3;
+    description = "Datadog Python library";
     homepage = "https://github.com/DataDog/datadogpy";
+    changelog = "https://github.com/DataDog/datadogpy/blob/v${version}/CHANGELOG.md";
+    license = licenses.bsd3;
+    maintainers = [ ];
   };
 }

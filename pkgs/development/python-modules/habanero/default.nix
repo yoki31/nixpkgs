@@ -1,29 +1,47 @@
-{ buildPythonPackage, lib, fetchFromGitHub
-, requests, tqdm
-, nose, vcrpy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools-scm,
+  requests,
+  tqdm,
+  vcrpy,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "habanero";
-  version = "0.7.4";
+  version = "1.2.6";
+  pyproject = true;
 
-  # Install from Pypi is failing because of a missing file (Changelog.rst)
   src = fetchFromGitHub {
     owner = "sckott";
     repo = pname;
-    rev = "v${version}";
-    sha256 = "1d8yj9xz5qabcj57rpjzvg0jcscvzrpb0739mll29nijbsaimfr1";
+    tag = "v${version}";
+    hash = "sha256-Pw0TgXxDRmR565hdNGipfDZ7P32pxWkmPWfaYK0RaI4=";
   };
 
-  propagatedBuildInputs = [ requests tqdm ];
+  build-system = [ setuptools-scm ];
 
-  checkInputs = [ nose vcrpy ];
-  checkPhase = "make test";
+  dependencies = [
+    requests
+    tqdm
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    vcrpy
+  ];
+
+  pythonImportsCheck = [ "habanero" ];
+
+  # almost the entirety of the test suite makes network calls
+  pytestFlagsArray = [ "test/test-filters.py" ];
 
   meta = {
     description = "Python interface to Library Genesis";
-    homepage = "https://habanero.readthedocs.io/en/latest/";
+    homepage = "https://habanero.readthedocs.io/";
     license = lib.licenses.mit;
-    maintainers = [ lib.maintainers.nico202 ];
+    maintainers = with lib.maintainers; [ nico202 ];
   };
 }

@@ -1,24 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "types-freezegun";
-  version = "1.1.6";
+  version = "1.1.10";
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-XHCkt0RLjH3SgA4AY9b+chqxEgk5kmT6D3evJT3YsU8=";
+    hash = "sha256-yzotLu6VDqy6rAZzq1BJmCM2XOuMZVursVRKQURkCew=";
   };
 
   # Module doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "freezegun-stubs"
-  ];
+  pythonImportsCheck = [ "freezegun-stubs" ];
 
   meta = with lib; {
     description = "Typing stubs for freezegun";

@@ -1,4 +1,12 @@
-{ lib, stdenv, fetchurl, love, lua, makeWrapper, makeDesktopItem }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  love,
+  lua,
+  makeWrapper,
+  makeDesktopItem,
+}:
 
 stdenv.mkDerivation rec {
   pname = "duckmarines";
@@ -16,7 +24,7 @@ stdenv.mkDerivation rec {
     comment = "Duck-themed action puzzle video game";
     desktopName = "Duck Marines";
     genericName = "duckmarines";
-    categories = "Game;";
+    categories = [ "Game" ];
   };
 
   src = fetchurl {
@@ -25,12 +33,14 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [ makeWrapper ];
-  buildInputs = [ lua love ];
+  buildInputs = [
+    lua
+    love
+  ];
 
   dontUnpack = true;
 
-  installPhase =
-  ''
+  installPhase = ''
     mkdir -p $out/bin
     mkdir -p $out/share/games/lovegames
 
@@ -47,7 +57,7 @@ stdenv.mkDerivation rec {
     description = "Duck-themed action puzzle video game";
     maintainers = with maintainers; [ leenaars ];
     platforms = platforms.linux;
-    hydraPlatforms = [];
+    hydraPlatforms = [ ];
     license = licenses.free;
     downloadPage = "http://tangramgames.dk/games/duckmarines";
   };

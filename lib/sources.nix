@@ -4,90 +4,104 @@
 # Tested in lib/tests/sources.sh
 let
   inherit (builtins)
-    hasContext
     match
-    readDir
     split
     storeDir
-    tryEval
     ;
   inherit (lib)
     boolToString
     filter
-    getAttr
     isString
-    pathExists
     readFile
     ;
+  inherit (lib.filesystem)
+    pathIsRegularFile
+    ;
 
-  # Returns the type of a path: regular (for file), symlink, or directory
-  pathType = p: getAttr (baseNameOf p) (readDir (dirOf p));
+  /*
+    A basic filter for `cleanSourceWith` that removes
+    directories of version control system, backup files (*~)
+    and some generated files.
+  */
+  cleanSourceFilter =
+    name: type:
+    let
+      baseName = baseNameOf (toString name);
+    in
+    !(
+      # Filter out version control software files/directories
+      (
+        baseName == ".git"
+        || type == "directory" && (baseName == ".svn" || baseName == "CVS" || baseName == ".hg")
+      )
+      ||
+        # Filter out editor backup / swap files.
+        lib.hasSuffix "~" baseName
+      || match "^\\.sw[a-z]$" baseName != null
+      || match "^\\..*\\.sw[a-z]$" baseName != null
+      ||
 
-  # Returns true if the path exists and is a directory, false otherwise
-  pathIsDirectory = p: if pathExists p then (pathType p) == "directory" else false;
+        # Filter out generates files.
+        lib.hasSuffix ".o" baseName
+      || lib.hasSuffix ".so" baseName
+      ||
+        # Filter out nix-build result symlinks
+        (type == "symlink" && lib.hasPrefix "result" baseName)
+      ||
+        # Filter out sockets and other types of files we can't have in the store.
+        (type == "unknown")
+    );
 
-  # Returns true if the path exists and is a regular file, false otherwise
-  pathIsRegularFile = p: if pathExists p then (pathType p) == "regular" else false;
+  /*
+    Filters a source tree removing version control files and directories using cleanSourceFilter.
 
-  # Bring in a path as a source, filtering out all Subversion and CVS
-  # directories, as well as backup files (*~).
-  cleanSourceFilter = name: type: let baseName = baseNameOf (toString name); in ! (
-    # Filter out version control software files/directories
-    (baseName == ".git" || type == "directory" && (baseName == ".svn" || baseName == "CVS" || baseName == ".hg")) ||
-    # Filter out editor backup / swap files.
-    lib.hasSuffix "~" baseName ||
-    match "^\\.sw[a-z]$" baseName != null ||
-    match "^\\..*\\.sw[a-z]$" baseName != null ||
+    Example:
+             cleanSource ./.
+  */
+  cleanSource =
+    src:
+    cleanSourceWith {
+      filter = cleanSourceFilter;
+      inherit src;
+    };
 
-    # Filter out generates files.
-    lib.hasSuffix ".o" baseName ||
-    lib.hasSuffix ".so" baseName ||
-    # Filter out nix-build result symlinks
-    (type == "symlink" && lib.hasPrefix "result" baseName) ||
-    # Filter out sockets and other types of files we can't have in the store.
-    (type == "unknown")
-  );
+  /*
+    Like `builtins.filterSource`, except it will compose with itself,
+    allowing you to chain multiple calls together without any
+    intermediate copies being put in the nix store.
 
-  # Filters a source tree removing version control files and directories using cleanSourceWith
-  #
-  # Example:
-  #          cleanSource ./.
-  cleanSource = src: cleanSourceWith { filter = cleanSourceFilter; inherit src; };
+    Example:
+        lib.cleanSourceWith {
+          filter = f;
+          src = lib.cleanSourceWith {
+            filter = g;
+            src = ./.;
+          };
+        }
+        # Succeeds!
 
-  # Like `builtins.filterSource`, except it will compose with itself,
-  # allowing you to chain multiple calls together without any
-  # intermediate copies being put in the nix store.
-  #
-  #     lib.cleanSourceWith {
-  #       filter = f;
-  #       src = lib.cleanSourceWith {
-  #         filter = g;
-  #         src = ./.;
-  #       };
-  #     }
-  #     # Succeeds!
-  #
-  #     builtins.filterSource f (builtins.filterSource g ./.)
-  #     # Fails!
-  #
-  # Parameters:
-  #
-  #   src:      A path or cleanSourceWith result to filter and/or rename.
-  #
-  #   filter:   A function (path -> type -> bool)
-  #             Optional with default value: constant true (include everything)
-  #             The function will be combined with the && operator such
-  #             that src.filter is called lazily.
-  #             For implementing a filter, see
-  #             https://nixos.org/nix/manual/#builtin-filterSource
-  #
-  #   name:     Optional name to use as part of the store path.
-  #             This defaults to `src.name` or otherwise `"source"`.
-  #
-  cleanSourceWith = { filter ? _path: _type: true, src, name ? null }:
+        builtins.filterSource f (builtins.filterSource g ./.)
+        # Fails!
+  */
+  cleanSourceWith =
+    {
+      # A path or cleanSourceWith result to filter and/or rename.
+      src,
+      # Optional with default value: constant true (include everything)
+      # The function will be combined with the && operator such
+      # that src.filter is called lazily.
+      # For implementing a filter, see
+      # https://nixos.org/nix/manual/#builtin-filterSource
+      # Type: A function (path -> type -> bool)
+      filter ? _path: _type: true,
+      # Optional name to use as part of the store path.
+      # This defaults to `src.name` or otherwise `"source"`.
+      name ? null,
+    }:
     let
       orig = toSourceAttributes src;
-    in fromSourceAttributes {
+    in
+    fromSourceAttributes {
       inherit (orig) origSrc;
       filter = path: type: filter path type && orig.filter path type;
       name = if name != null then name else orig.name;
@@ -104,29 +118,40 @@ let
     let
       attrs = toSourceAttributes src;
     in
-      fromSourceAttributes (
-        attrs // {
-          filter = path: type:
-            let
-              r = attrs.filter path type;
-            in
-              builtins.trace "${attrs.name}.filter ${path} = ${boolToString r}" r;
-        }
-      ) // {
-        satisfiesSubpathInvariant = src ? satisfiesSubpathInvariant && src.satisfiesSubpathInvariant;
-      };
+    fromSourceAttributes (
+      attrs
+      // {
+        filter =
+          path: type:
+          let
+            r = attrs.filter path type;
+          in
+          builtins.trace "${attrs.name}.filter ${path} = ${boolToString r}" r;
+      }
+    )
+    // {
+      satisfiesSubpathInvariant = src ? satisfiesSubpathInvariant && src.satisfiesSubpathInvariant;
+    };
 
-  # Filter sources by a list of regular expressions.
-  #
-  # E.g. `src = sourceByRegex ./my-subproject [".*\.py$" "^database.sql$"]`
-  sourceByRegex = src: regexes:
+  /*
+    Filter sources by a list of regular expressions.
+
+    Example: src = sourceByRegex ./my-subproject [".*\.py$" "^database.sql$"]
+  */
+  sourceByRegex =
+    src: regexes:
     let
       isFiltered = src ? _isLibCleanSourceWith;
       origSrc = if isFiltered then src.origSrc else src;
-    in lib.cleanSourceWith {
-      filter = (path: type:
-        let relPath = lib.removePrefix (toString origSrc + "/") (toString path);
-        in lib.any (re: match re relPath != null) regexes);
+    in
+    lib.cleanSourceWith {
+      filter = (
+        path: type:
+        let
+          relPath = lib.removePrefix (toString origSrc + "/") (toString path);
+        in
+        lib.any (re: match re relPath != null) regexes
+      );
       inherit src;
     };
 
@@ -146,65 +171,99 @@ let
     src:
     # A list of file suffix strings
     exts:
-    let filter = name: type:
-      let base = baseNameOf (toString name);
-      in type == "directory" || lib.any (ext: lib.hasSuffix ext base) exts;
-    in cleanSourceWith { inherit filter src; };
+    let
+      filter =
+        name: type:
+        let
+          base = baseNameOf (toString name);
+        in
+        type == "directory" || lib.any (ext: lib.hasSuffix ext base) exts;
+    in
+    cleanSourceWith { inherit filter src; };
 
-  pathIsGitRepo = path: (tryEval (commitIdFromGitRepo path)).success;
+  pathIsGitRepo = path: (_commitIdFromGitRepoOrError path) ? value;
 
-  # Get the commit id of a git repo
-  # Example: commitIdFromGitRepo <nixpkgs/.git>
+  /*
+    Get the commit id of a git repo.
+
+    Example: commitIdFromGitRepo <nixpkgs/.git>
+  */
   commitIdFromGitRepo =
-    let readCommitFromFile = file: path:
-        let fileName       = toString path + "/" + file;
-            packedRefsName = toString path + "/packed-refs";
-            absolutePath   = base: path:
-              if lib.hasPrefix "/" path
-              then path
-              else toString (/. + "${base}/${path}");
-        in if pathIsRegularFile path
-           # Resolve git worktrees. See gitrepository-layout(5)
-           then
-             let m   = match "^gitdir: (.*)$" (lib.fileContents path);
-             in if m == null
-                then throw ("File contains no gitdir reference: " + path)
-                else
-                  let gitDir      = absolutePath (dirOf path) (lib.head m);
-                      commonDir'' = if pathIsRegularFile "${gitDir}/commondir"
-                                    then lib.fileContents "${gitDir}/commondir"
-                                    else gitDir;
-                      commonDir'  = lib.removeSuffix "/" commonDir'';
-                      commonDir   = absolutePath gitDir commonDir';
-                      refFile     = lib.removePrefix "${commonDir}/" "${gitDir}/${file}";
-                  in readCommitFromFile refFile commonDir
+    path:
+    let
+      commitIdOrError = _commitIdFromGitRepoOrError path;
+    in
+    commitIdOrError.value or (throw commitIdOrError.error);
 
-           else if pathIsRegularFile fileName
-           # Sometimes git stores the commitId directly in the file but
-           # sometimes it stores something like: «ref: refs/heads/branch-name»
-           then
-             let fileContent = lib.fileContents fileName;
-                 matchRef    = match "^ref: (.*)$" fileContent;
-             in if  matchRef == null
-                then fileContent
-                else readCommitFromFile (lib.head matchRef) path
+  # Get the commit id of a git repo.
 
-           else if pathIsRegularFile packedRefsName
-           # Sometimes, the file isn't there at all and has been packed away in the
-           # packed-refs file, so we have to grep through it:
-           then
-             let fileContent = readFile packedRefsName;
-                 matchRef = match "([a-z0-9]+) ${file}";
-                 isRef = s: isString s && (matchRef s) != null;
-                 # there is a bug in libstdc++ leading to stackoverflow for long strings:
-                 # https://github.com/NixOS/nix/issues/2147#issuecomment-659868795
-                 refs = filter isRef (split "\n" fileContent);
-             in if refs == []
-                then throw ("Could not find " + file + " in " + packedRefsName)
-                else lib.head (matchRef (lib.head refs))
+  # Returns `{ value = commitHash }` or `{ error = "... message ..." }`.
 
-           else throw ("Not a .git directory: " + path);
-    in readCommitFromFile "HEAD";
+  # Example: commitIdFromGitRepo <nixpkgs/.git>
+  # not exported, used for commitIdFromGitRepo
+  _commitIdFromGitRepoOrError =
+    let
+      readCommitFromFile =
+        file: path:
+        let
+          fileName = path + "/${file}";
+          packedRefsName = path + "/packed-refs";
+          absolutePath =
+            base: path: if lib.hasPrefix "/" path then path else toString (/. + "${base}/${path}");
+        in
+        if
+          pathIsRegularFile path
+        # Resolve git worktrees. See gitrepository-layout(5)
+        then
+          let
+            m = match "^gitdir: (.*)$" (lib.fileContents path);
+          in
+          if m == null then
+            { error = "File contains no gitdir reference: " + path; }
+          else
+            let
+              gitDir = absolutePath (dirOf path) (lib.head m);
+              commonDir'' =
+                if pathIsRegularFile "${gitDir}/commondir" then lib.fileContents "${gitDir}/commondir" else gitDir;
+              commonDir' = lib.removeSuffix "/" commonDir'';
+              commonDir = absolutePath gitDir commonDir';
+              refFile = lib.removePrefix "${commonDir}/" "${gitDir}/${file}";
+            in
+            readCommitFromFile refFile commonDir
+
+        else if
+          pathIsRegularFile fileName
+        # Sometimes git stores the commitId directly in the file but
+        # sometimes it stores something like: «ref: refs/heads/branch-name»
+        then
+          let
+            fileContent = lib.fileContents fileName;
+            matchRef = match "^ref: (.*)$" fileContent;
+          in
+          if matchRef == null then { value = fileContent; } else readCommitFromFile (lib.head matchRef) path
+
+        else if
+          pathIsRegularFile packedRefsName
+        # Sometimes, the file isn't there at all and has been packed away in the
+        # packed-refs file, so we have to grep through it:
+        then
+          let
+            fileContent = readFile packedRefsName;
+            matchRef = match "([a-z0-9]+) ${file}";
+            isRef = s: isString s && (matchRef s) != null;
+            # there is a bug in libstdc++ leading to stackoverflow for long strings:
+            # https://github.com/NixOS/nix/issues/2147#issuecomment-659868795
+            refs = filter isRef (split "\n" fileContent);
+          in
+          if refs == [ ] then
+            { error = "Could not find " + file + " in " + packedRefsName; }
+          else
+            { value = lib.head (matchRef (lib.head refs)); }
+
+        else
+          { error = "Not a .git directory: " + toString path; };
+    in
+    readCommitFromFile "HEAD";
 
   pathHasContext = builtins.hasContext or (lib.hasPrefix storeDir);
 
@@ -221,7 +280,8 @@ let
   # like class of objects in the wild.
   # (Existing ones being: paths, strings, sources and x//{outPath})
   # So instead of exposing internals, we build a library of combinator functions.
-  toSourceAttributes = src:
+  toSourceAttributes =
+    src:
     let
       isFiltered = src ? _isLibCleanSourceWith;
     in
@@ -235,19 +295,40 @@ let
   # fromSourceAttributes : SourceAttrs -> Source
   #
   # Inverse of toSourceAttributes for Source objects.
-  fromSourceAttributes = { origSrc, filter, name }:
+  fromSourceAttributes =
+    {
+      origSrc,
+      filter,
+      name,
+    }:
     {
       _isLibCleanSourceWith = true;
       inherit origSrc filter name;
-      outPath = builtins.path { inherit filter name; path = origSrc; };
+      outPath = builtins.path {
+        inherit filter name;
+        path = origSrc;
+      };
     };
 
-in {
-  inherit
-    pathType
-    pathIsDirectory
-    pathIsRegularFile
+in
+{
 
+  pathType =
+    lib.warnIf (lib.oldestSupportedReleaseIsAtLeast 2305)
+      "lib.sources.pathType has been moved to lib.filesystem.pathType."
+      lib.filesystem.pathType;
+
+  pathIsDirectory =
+    lib.warnIf (lib.oldestSupportedReleaseIsAtLeast 2305)
+      "lib.sources.pathIsDirectory has been moved to lib.filesystem.pathIsDirectory."
+      lib.filesystem.pathIsDirectory;
+
+  pathIsRegularFile =
+    lib.warnIf (lib.oldestSupportedReleaseIsAtLeast 2305)
+      "lib.sources.pathIsRegularFile has been moved to lib.filesystem.pathIsRegularFile."
+      lib.filesystem.pathIsRegularFile;
+
+  inherit
     pathIsGitRepo
     commitIdFromGitRepo
 

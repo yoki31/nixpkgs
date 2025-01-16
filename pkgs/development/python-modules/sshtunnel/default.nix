@@ -1,31 +1,44 @@
-{ lib, buildPythonPackage, fetchPypi
-, paramiko
-, pytest
-, mock
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  paramiko,
+  pytestCheckHook,
+  mock,
+  setuptools,
 }:
 
 buildPythonPackage rec {
-  version = "0.4.0";
   pname = "sshtunnel";
+  version = "0.4.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-58sOp3Tbgb+RhE2yLecqQKro97D5u5ug9mbUdO9r+fw=";
+    hash = "sha256-58sOp3Tbgb+RhE2yLecqQKro97D5u5ug9mbUdO9r+fw=";
   };
 
-  propagatedBuildInputs = [ paramiko ];
+  build-system = [ setuptools ];
 
-  checkInputs = [ pytest mock ];
+  dependencies = [ paramiko ] ++ paramiko.optional-dependencies.ed25519;
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    mock
+  ];
 
   # disable impure tests
-  checkPhase = ''
-    pytest -k 'not connect_via_proxy and not read_ssh_config'
-  '';
+  disabledTests = [
+    "test_get_keys"
+    "connect_via_proxy"
+    "read_ssh_config"
+  ];
 
   meta = with lib; {
     description = "Pure python SSH tunnels";
+    mainProgram = "sshtunnel";
     homepage = "https://github.com/pahaz/sshtunnel";
     license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    maintainers = [ ];
   };
 }

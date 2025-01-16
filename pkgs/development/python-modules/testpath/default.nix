@@ -1,24 +1,33 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "testpath";
-  version = "0.5.0";
+  version = "0.6.0";
+  format = "pyproject";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "05z4s4d5i1ja16hiv4jhqv63fvg1a4vw77s0ay1sw11hrl5pmkqs";
+    hash = "sha256-LxuX5kQsAmgevgG9hPUxAop8rqGvOCUAD1I0XDAoXg8=";
   };
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  nativeBuildInputs = [ flit-core ];
 
-  preCheck = lib.optionalString stdenv.isDarwin ''
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  # exe are only required when testpath is used on windows
+  # https://github.com/jupyter/testpath/blob/de8ca59539eb23b9781e55848b7d2646c8c61df9/testpath/commands.py#L128
+  preBuild = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
+    rm testpath/cli-32.exe testpath/cli-64.exe
+  '';
+
+  preCheck = lib.optionalString stdenv.hostPlatform.isDarwin ''
     # Work around https://github.com/jupyter/testpath/issues/24
     export TMPDIR="/tmp"
   '';
@@ -28,5 +37,4 @@ buildPythonPackage rec {
     license = licenses.mit;
     homepage = "https://github.com/jupyter/testpath";
   };
-
 }

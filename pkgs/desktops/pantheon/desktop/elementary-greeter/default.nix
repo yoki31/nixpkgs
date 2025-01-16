@@ -1,7 +1,6 @@
 { lib
 , stdenv
 , fetchFromGitHub
-, fetchpatch
 , nix-update-script
 , linkFarm
 , substituteAll
@@ -15,6 +14,7 @@
 , granite
 , libgee
 , libhandy
+, gnome-desktop
 , gnome-settings-daemon
 , mutter
 , elementary-icon-theme
@@ -23,21 +23,21 @@
 , nixos-artwork
 , lightdm
 , gdk-pixbuf
-, clutter-gtk
 , dbus
 , accountsservice
-, wrapGAppsHook
+, wayland-scanner
+, wrapGAppsHook3
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-greeter";
-  version = "6.0.1";
+  version = "8.0.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "greeter";
     rev = version;
-    sha256 = "1f606ds56sp1c58q8dblfpaq9pwwkqw9i4gkwksw45m2xkwlbflq";
+    sha256 = "sha256-fx3KHMF6UhIFXyJHQ4dKJnVidsNMBk7AvHzaF3ELH1k=";
   };
 
   patches = [
@@ -47,25 +47,9 @@ stdenv.mkDerivation rec {
       src = ./hardcode-fallback-background.patch;
       default_wallpaper = "${nixos-artwork.wallpapers.simple-dark-gray.gnomeFilePath}";
     })
-    # Revert "UserCard: use accent color for logged_in check (#566)"
-    # https://github.com/elementary/greeter/pull/566
-    # Fixes crash issue reported in:
-    # https://github.com/elementary/greeter/issues/578
-    # https://github.com/NixOS/nixpkgs/issues/151609
-    # Probably also fixes:
-    # https://github.com/elementary/greeter/issues/568
-    # https://github.com/elementary/greeter/issues/583
-    # https://github.com/NixOS/nixpkgs/issues/140513
-    # Revisit this when the greeter is ported to GTK 4:
-    # https://github.com/elementary/greeter/pull/591
-    ./revert-pr566.patch
-    # Fix build with meson 0.61
-    # https://github.com/elementary/greeter/pull/590
-    (fetchpatch {
-      url = "https://github.com/elementary/greeter/commit/a4b25244058fce794a9f13f6b22a8ff7735ebde9.patch";
-      sha256 = "sha256-qPXhdvmYG8YMDU/CjbEkfZ0glgRzxnu0TsOPtvWHxLY=";
-    })
   ];
+
+  depsBuildBuild = [ pkg-config ];
 
   nativeBuildInputs = [
     desktop-file-utils
@@ -73,14 +57,14 @@ stdenv.mkDerivation rec {
     ninja
     pkg-config
     vala
-    wrapGAppsHook
+    wayland-scanner
+    wrapGAppsHook3
   ];
 
   buildInputs = [
     accountsservice
-    clutter-gtk # else we get could not generate cargs for mutter-clutter-2
-    elementary-gtk-theme
     elementary-icon-theme
+    gnome-desktop
     gnome-settings-daemon
     gdk-pixbuf
     granite
@@ -89,11 +73,10 @@ stdenv.mkDerivation rec {
     libhandy
     lightdm
     mutter
-    wingpanel-with-indicators
   ];
 
   mesonFlags = [
-    # A hook does this but after wrapGAppsHook so the files never get wrapped.
+    # A hook does this but after wrapGAppsHook3 so the files never get wrapped.
     "--sbindir=${placeholder "out"}/bin"
     # baked into the program for discovery of the greeter configuration
     "--sysconfdir=/etc"
@@ -111,8 +94,11 @@ stdenv.mkDerivation rec {
       # for the compositor
       --prefix PATH : "$out/bin"
 
-      # the theme is hardcoded
+      # the GTK theme is hardcoded
       --prefix XDG_DATA_DIRS : "${elementary-gtk-theme}/share"
+
+      # the icon theme is hardcoded
+      --prefix XDG_DATA_DIRS : "$XDG_ICON_DIRS"
     )
   '';
 
@@ -127,9 +113,7 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
 
     xgreeters = linkFarm "pantheon-greeter-xgreeters" [{
       path = "${elementary-greeter}/share/xgreeters/io.elementary.greeter.desktop";

@@ -1,7 +1,13 @@
-{ lib, stdenv, fetchurl, makeWrapper
-, boost, gmp
-, tcl-8_5, tk-8_5
-, emacs
+{
+  lib,
+  stdenv,
+  fetchurl,
+  makeWrapper,
+  boost,
+  gmp,
+  tcl-8_5,
+  tk-8_5,
+  emacs,
 }:
 
 let
@@ -21,15 +27,17 @@ stdenv.mkDerivation {
 
   preferLocalBuild = true;
 
-  src = binaries.${stdenv.hostPlatform.system} or (throw "unsupported system: ${stdenv.hostPlatform.system}");
+  src =
+    binaries.${stdenv.hostPlatform.system}
+      or (throw "unsupported system: ${stdenv.hostPlatform.system}");
 
-  libPath = lib.makeLibraryPath
-    [ stdenv.cc.cc
-      boost
-      gmp
-      tcl-8_5
-      tk-8_5
-    ];
+  libPath = lib.makeLibraryPath [
+    stdenv.cc.cc
+    boost
+    gmp
+    tcl-8_5
+    tk-8_5
+  ];
 
   TK_LIBRARY = "${tk-8_5}/lib/tk8.5";
 
@@ -73,8 +81,9 @@ stdenv.mkDerivation {
       interfaces. Mozart implements the Oz language and provides both
       expressive power and advanced functionality.
     '';
+    sourceProvenance = with sourceTypes; [ binaryBytecode ];
     license = licenses.mit;
     platforms = attrNames binaries;
-    hydraPlatforms = [];
+    hydraPlatforms = [ ];
   };
 }

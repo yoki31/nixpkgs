@@ -1,28 +1,51 @@
-{ buildGoModule, stdenv, lib, procps, fetchFromGitHub, nixosTests }:
+{ pkgsBuildBuild
+, go
+, buildGoModule
+, stdenv
+, lib
+, fetchFromGitHub
+, nixosTests
+, autoSignDarwinBinariesHook
+, nix-update-script
+}:
 
 let
   common = { stname, target, postInstall ? "" }:
     buildGoModule rec {
       pname = stname;
-      version = "1.19.0";
+      version = "1.28.1";
 
       src = fetchFromGitHub {
-        owner  = "syncthing";
-        repo   = "syncthing";
-        rev    = "v${version}";
-        sha256 = "sha256-jQoY0mA/vAOCaCMR8Aapt49AF7HAmjPsr3MKLoaa24g=";
+        owner = "syncthing";
+        repo = "syncthing";
+        tag = "v${version}";
+        hash = "sha256-Xr2765+DDK7dm3WDIwB3vbMG5CrguxsFp9qGd4wwhnA=";
       };
 
-      vendorSha256 = "sha256-hZcMt3LlK5FuhhlwCmYtlDAJv1QNK+YY7NvZaWMBuys=";
+      vendorHash = "sha256-V8mMvIiEaYzTIFwUsdcV5ntHklR7Cs3ZhB5nYUT0180=";
+
+      nativeBuildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+        # Recent versions of macOS seem to require binaries to be signed when
+        # run from Launch Agents/Daemons, even on x86 devices where it has a
+        # more lax code signing policy compared to Apple Silicon. So just sign
+        # the binaries on both architectures to make it possible for launchd to
+        # auto-start Syncthing at login.
+        autoSignDarwinBinariesHook
+      ];
 
       doCheck = false;
 
-      BUILD_USER="nix";
-      BUILD_HOST="nix";
+      BUILD_USER = "nix";
+      BUILD_HOST = "nix";
 
       buildPhase = ''
         runHook preBuild
-        go run build.go -no-upgrade -version v${version} build ${target}
+        (
+          export GOOS="${pkgsBuildBuild.go.GOOS}" GOARCH="${pkgsBuildBuild.go.GOARCH}" CC=$CC_FOR_BUILD
+          go build build.go
+          go generate github.com/syncthing/syncthing/lib/api/auto github.com/syncthing/syncthing/cmd/infra/strelaypoolsrv/auto
+        )
+        ./build -goos ${go.GOOS} -goarch ${go.GOARCH} -no-upgrade -version v${version} build ${target}
         runHook postBuild
       '';
 
@@ -34,22 +57,26 @@ let
 
       inherit postInstall;
 
-      passthru.tests = with nixosTests; {
-        init = syncthing-init;
-        relay = syncthing-relay;
+      passthru = {
+        tests = {
+          inherit (nixosTests) syncthing syncthing-init syncthing-relay;
+        };
+        updateScript = nix-update-script { };
       };
 
-      meta = with lib; {
+      meta = {
         homepage = "https://syncthing.net/";
         description = "Open Source Continuous File Synchronization";
         changelog = "https://github.com/syncthing/syncthing/releases/tag/v${version}";
-        license = licenses.mpl20;
-        maintainers = with maintainers; [ joko peterhoeg andrew-d ];
-        platforms = platforms.unix;
+        license = lib.licenses.mpl20;
+        maintainers = with lib.maintainers; [ joko peterhoeg ];
+        mainProgram = target;
+        platforms = lib.platforms.unix;
       };
     };
 
-in {
+in
+{
   syncthing = common {
     stname = "syncthing";
     target = "syncthing";
@@ -63,20 +90,16 @@ in {
         install -Dm644 "$mf" "$mandir/$(basename "$mf")"
       done
 
-    '' + lib.optionalString (stdenv.isLinux) ''
+    '' + lib.optionalString (stdenv.hostPlatform.isLinux) ''
       mkdir -p $out/lib/systemd/{system,user}
-
-      substitute etc/linux-systemd/system/syncthing-resume.service \
-                 $out/lib/systemd/system/syncthing-resume.service \
-                 --replace /usr/bin/pkill ${procps}/bin/pkill
 
       substitute etc/linux-systemd/system/syncthing@.service \
                  $out/lib/systemd/system/syncthing@.service \
-                 --replace /usr/bin/syncthing $out/bin/syncthing
+                 --replace-fail /usr/bin/syncthing $out/bin/syncthing
 
       substitute etc/linux-systemd/user/syncthing.service \
                  $out/lib/systemd/user/syncthing.service \
-                 --replace /usr/bin/syncthing $out/bin/syncthing
+                 --replace-fail /usr/bin/syncthing $out/bin/syncthing
     '';
   };
 
@@ -89,12 +112,12 @@ in {
     stname = "syncthing-relay";
     target = "strelaysrv";
 
-    postInstall = lib.optionalString (stdenv.isLinux) ''
+    postInstall = lib.optionalString (stdenv.hostPlatform.isLinux) ''
       mkdir -p $out/lib/systemd/system
 
       substitute cmd/strelaysrv/etc/linux-systemd/strelaysrv.service \
                  $out/lib/systemd/system/strelaysrv.service \
-                 --replace /usr/bin/strelaysrv $out/bin/strelaysrv
+                 --replace-fail /usr/bin/strelaysrv $out/bin/strelaysrv
     '';
   };
 }

@@ -1,4 +1,9 @@
-{ lib, stdenv, fetchFromGitHub, cmake }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+}:
 
 stdenv.mkDerivation rec {
   pname = "p8-platform";
@@ -16,9 +21,8 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "Platform library for libcec and Kodi addons";
     homepage = "https://github.com/Pulse-Eight/platform";
-    repositories.git = "https://github.com/Pulse-Eight/platform.git";
     license = lib.licenses.gpl2Plus;
     platforms = platforms.all;
-    maintainers = [ maintainers.titanous ];
+    maintainers = teams.kodi.members;
   };
 }

@@ -1,46 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, lxml
-, beautifulsoup4
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  lxml,
+  lxml-html-clean,
+  beautifulsoup4,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "html-sanitizer";
-  version = "1.9.2";
+  version = "2.4.4";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "matthiask";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-ZPyGF7N+EZHfgqZfRQx4x1r83BMur+Zg2kdtVISn3I8=";
+    repo = "html-sanitizer";
+    tag = version;
+    hash = "sha256-6OWFLsuefeDzQ1uHnLmboKDgrbY/xJCwqsSQlDaJlRs=";
   };
+
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     lxml
+    lxml-html-clean
     beautifulsoup4
   ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "html_sanitizer/tests.py"
-  ];
+  pytestFlagsArray = [ "html_sanitizer/tests.py" ];
 
   disabledTests = [
+    # Tests are sensitive to output
     "test_billion_laughs"
+    "test_10_broken_html"
   ];
 
-  pythonImportsCheck = [
-    "html_sanitizer"
-  ];
+  pythonImportsCheck = [ "html_sanitizer" ];
 
   meta = with lib; {
     description = "Allowlist-based and very opinionated HTML sanitizer";
     homepage = "https://github.com/matthiask/html-sanitizer";
+    changelog = "https://github.com/matthiask/html-sanitizer/blob/${version}/CHANGELOG.rst";
     license = with licenses; [ bsd3 ];
     maintainers = with maintainers; [ fab ];
   };

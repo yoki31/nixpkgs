@@ -1,39 +1,53 @@
-{ lib, coreutils, python3, gcc, writeText, writeScript, runCommand, makeBinaryWrapper }:
+{
+  lib,
+  stdenv,
+  pkgsCross,
+  makeBinaryWrapper,
+  writeText,
+  runCommand,
+  runCommandCC,
+}:
 
 let
-  env = { buildInputs = [ makeBinaryWrapper ]; };
-  envCheck = runCommand "envcheck" env ''
-    ${gcc}/bin/cc -Wall -Werror -Wpedantic -o $out ${./envcheck.c}
+  env = {
+    nativeBuildInputs = [ makeBinaryWrapper ];
+  };
+  envCheck = runCommandCC "envcheck" env ''
+    cc -Wall -Werror -Wpedantic -o $out ${./envcheck.c}
   '';
-  makeGoldenTest = testname: runCommand "test-wrapper_${testname}" env ''
-    mkdir -p ./tmp/foo
+  makeGoldenTest =
+    testname:
+    runCommand "make-binary-wrapper-test-${testname}" env ''
+      mkdir -p tmp/foo # for the chdir test
 
-    params=$(<"${./.}/${testname}.cmdline")
-    eval "makeCWrapper /send/me/flags $params" > wrapper.c
+      source=${./${testname}}
 
-    diff wrapper.c "${./.}/${testname}.c"
+      params=$(<"$source/${testname}.cmdline")
+      eval "makeCWrapper /send/me/flags $params" > wrapper.c
 
-    if [ -f "${./.}/${testname}.env" ]; then
-      eval "makeWrapper ${envCheck} wrapped $params"
-      env -i ./wrapped > env.txt
-      sed "s#SUBST_ARGV0#${envCheck}#;s#SUBST_CWD#$PWD#" \
-        "${./.}/${testname}.env" > golden-env.txt
-      if ! diff env.txt golden-env.txt; then
-        echo "env/argv should be:"
-        cat golden-env.txt
-        echo "env/argv output is:"
-        cat env.txt
-        exit 1
+      diff wrapper.c "$source/${testname}.c"
+
+      if [ -f "$source/${testname}.env" ]; then
+        eval "makeWrapper ${envCheck} wrapped $params"
+        env -i ./wrapped > env.txt
+        sed "s#SUBST_ARGV0#${envCheck}#;s#SUBST_CWD#$PWD#" \
+          "$source/${testname}.env" > golden-env.txt
+        if ! diff env.txt golden-env.txt; then
+          echo "env/argv should be:"
+          cat golden-env.txt
+          echo "env/argv output is:"
+          cat env.txt
+          exit 1
+        fi
+      else
+        # without a golden env, we expect the wrapper compilation to fail
+        ! eval "makeWrapper ${envCheck} wrapped $params" &> error.txt
       fi
-    else
-      # without a golden env, we expect the wrapper compilation to fail
-      ! eval "makeWrapper ${envCheck} wrapped $params" &> error.txt
-    fi
 
-    cp wrapper.c $out
-  '';
-  tests = let
-    names = [
+      cp wrapper.c $out
+    '';
+  tests =
+    lib.genAttrs [
       "add-flags"
       "argv0"
       "basic"
@@ -42,13 +56,19 @@ let
       "env"
       "inherit-argv0"
       "invalid-env"
+      "overlength-strings"
       "prefix"
       "suffix"
-    ];
-    f = name: lib.nameValuePair name (makeGoldenTest name);
-  in builtins.listToAttrs (builtins.map f names);
-in writeText "make-binary-wrapper-test" ''
-  ${lib.concatStringsSep "\n" (lib.mapAttrsToList (_: test: ''
-    "${test.name}" "${test}"
-  '') tests)}
-'' // tests
+    ] makeGoldenTest
+    // lib.optionalAttrs (!stdenv.hostPlatform.isDarwin) {
+      cross =
+        pkgsCross.${if stdenv.buildPlatform.isAarch64 then "gnu64" else "aarch64-multiplatform"}.callPackage
+          ./cross.nix
+          { };
+    };
+in
+
+writeText "make-binary-wrapper-tests" ''
+  ${lib.concatStringsSep "\n" (builtins.attrValues tests)}
+''
+// tests

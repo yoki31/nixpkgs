@@ -1,43 +1,46 @@
-{ lib, buildPythonPackage, fetchPypi
-, coverage
-, mock
-, ply
-, pytest-runner
-, pytestCheckHook
-, six
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+  mock,
+  packaging,
+  ply,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "stone";
-  version = "3.2.1";
+  version = "3.3.8";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "0xby5mpsms7b2rv8j6mvxzmzz5i9ii01brb9ylxz6kiv2i08piwv";
+  disabled = pythonOlder "3.7";
+
+  src = fetchFromGitHub {
+    owner = "dropbox";
+    repo = "stone";
+    tag = "v${version}";
+    hash = "sha256-W+wRVWPaAzhdHMVE54GEJC/YJqYZVJhwFDWWSMKUPdw=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "pytest-runner == 5.2.0" "pytest-runner" \
-      --replace "pytest < 5" "pytest"
-    substituteInPlace test/requirements.txt \
-      --replace "coverage==5.3" "coverage"
+      --replace-fail "'pytest-runner == 5.3.2'," ""
   '';
 
-  nativeBuildInputs = [ pytest-runner ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [ ply six ];
-
-  checkInputs = [ pytestCheckHook coverage mock ];
-
-  # try to import from `test` directory, which is exported by the python interpreter
-  # and cannot be overriden without removing some py3 to py2 support
-  disabledTestPaths = [
-    "test/test_tsd_types.py"
-    "test/test_js_client.py"
+  dependencies = [
+    ply
+    six
+    packaging
   ];
-  disabledTests = [
-    "test_type_name_with_module"
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    mock
   ];
 
   pythonImportsCheck = [ "stone" ];
@@ -45,7 +48,9 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Official Api Spec Language for Dropbox";
     homepage = "https://github.com/dropbox/stone";
+    changelog = "https://github.com/dropbox/stone/releases/tag/v${version}";
     license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    maintainers = [ ];
+    mainProgram = "stone";
   };
 }

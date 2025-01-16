@@ -1,38 +1,92 @@
-{ stdenv, lib, fetchurl, makeWrapper, gnused, db, openssl, cyrus_sasl, libnsl
-, coreutils, findutils, gnugrep, gawk, icu, pcre, m4
-, buildPackages, nixosTests
-, withLDAP ? true, openldap
-, withPgSQL ? false, postgresql
-, withMySQL ? false, libmysqlclient
-, withSQLite ? false, sqlite
+{
+  stdenv,
+  lib,
+  fetchurl,
+  makeWrapper,
+  gnused,
+  db,
+  openssl,
+  cyrus_sasl,
+  libnsl,
+  coreutils,
+  findutils,
+  gnugrep,
+  gawk,
+  icu,
+  pcre2,
+  m4,
+  fetchpatch,
+  buildPackages,
+  nixosTests,
+  withLDAP ? true,
+  openldap,
+  withPgSQL ? false,
+  postgresql,
+  withMySQL ? false,
+  libmysqlclient,
+  withSQLite ? false,
+  sqlite,
 }:
 
 let
-  ccargs = lib.concatStringsSep " " ([
-    "-DUSE_TLS" "-DUSE_SASL_AUTH" "-DUSE_CYRUS_SASL" "-I${cyrus_sasl.dev}/include/sasl"
-    "-DHAS_DB_BYPASS_MAKEDEFS_CHECK"
-   ] ++ lib.optional withPgSQL "-DHAS_PGSQL"
-     ++ lib.optionals withMySQL [ "-DHAS_MYSQL" "-I${libmysqlclient.dev}/include/mysql" "-L${libmysqlclient}/lib/mysql" ]
-     ++ lib.optional withSQLite "-DHAS_SQLITE"
-     ++ lib.optionals withLDAP ["-DHAS_LDAP" "-DUSE_LDAP_SASL"]);
-   auxlibs = lib.concatStringsSep " " ([
-     "-ldb" "-lnsl" "-lresolv" "-lsasl2" "-lcrypto" "-lssl"
-   ] ++ lib.optional withPgSQL "-lpq"
-     ++ lib.optional withMySQL "-lmysqlclient"
-     ++ lib.optional withSQLite "-lsqlite3"
-     ++ lib.optional withLDAP "-lldap");
+  ccargs = lib.concatStringsSep " " (
+    [
+      "-DUSE_TLS"
+      "-DUSE_SASL_AUTH"
+      "-DUSE_CYRUS_SASL"
+      "-I${cyrus_sasl.dev}/include/sasl"
+      "-DHAS_DB_BYPASS_MAKEDEFS_CHECK"
+    ]
+    ++ lib.optional withPgSQL "-DHAS_PGSQL"
+    ++ lib.optionals withMySQL [
+      "-DHAS_MYSQL"
+      "-I${libmysqlclient.dev}/include/mysql"
+      "-L${libmysqlclient}/lib/mysql"
+    ]
+    ++ lib.optional withSQLite "-DHAS_SQLITE"
+    ++ lib.optionals withLDAP [
+      "-DHAS_LDAP"
+      "-DUSE_LDAP_SASL"
+    ]
+  );
+  auxlibs = lib.concatStringsSep " " (
+    [
+      "-ldb"
+      "-lnsl"
+      "-lresolv"
+      "-lsasl2"
+      "-lcrypto"
+      "-lssl"
+    ]
+    ++ lib.optional withPgSQL "-lpq"
+    ++ lib.optional withMySQL "-lmysqlclient"
+    ++ lib.optional withSQLite "-lsqlite3"
+    ++ lib.optional withLDAP "-lldap"
+  );
 
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation rec {
   pname = "postfix";
-  version = "3.6.4";
+  version = "3.9.1";
 
   src = fetchurl {
-    url = "http://cdn.postfix.johnriley.me/mirrors/postfix-release/official/${pname}-${version}.tar.gz";
-    hash = "sha256-jeBhnc8vp8IVqAz4S4KrcWMdTUciy6CUlyXOPhgDHU4=";
+    url = "https://de.postfix.org/ftpmirror/official/postfix-${version}.tar.gz";
+    hash = "sha256-xIiUTrA2JXbRj1+MxLmzKjW8s11xuUfarJdkr0dw9kM=";
   };
 
-  nativeBuildInputs = [ makeWrapper m4 ];
-  buildInputs = [ db openssl cyrus_sasl icu libnsl pcre ]
+  nativeBuildInputs = [
+    makeWrapper
+    m4
+  ];
+  buildInputs =
+    [
+      db
+      openssl
+      cyrus_sasl
+      icu
+      libnsl
+      pcre2
+    ]
     ++ lib.optional withPgSQL postgresql
     ++ lib.optional withMySQL libmysqlclient
     ++ lib.optional withSQLite sqlite
@@ -46,17 +100,25 @@ in stdenv.mkDerivation rec {
     ./postfix-3.0-no-warnings.patch
     ./post-install-script.patch
     ./relative-symlinks.patch
+
+    # glibc 2.34 compat
+    (fetchpatch {
+      url = "https://src.fedoraproject.org/rpms/postfix/raw/2f9d42453e67ebc43f786d98262a249037f80a77/f/postfix-3.6.2-glibc-234-build-fix.patch";
+      sha256 = "sha256-xRUL5gaoIt6HagGlhsGwvwrAfYvzMgydsltYMWvl9BI=";
+    })
   ];
 
-  postPatch = lib.optionalString (stdenv.hostPlatform != stdenv.buildPlatform) ''
-    sed -e 's!bin/postconf!${buildPackages.postfix}/bin/postconf!' -i postfix-install
-  '' + ''
-    sed -e '/^PATH=/d' -i postfix-install
-    sed -e "s|@PACKAGE@|$out|" -i conf/post-install
+  postPatch =
+    lib.optionalString (stdenv.hostPlatform != stdenv.buildPlatform) ''
+      sed -e 's!bin/postconf!${buildPackages.postfix}/bin/postconf!' -i postfix-install
+    ''
+    + ''
+      sed -e '/^PATH=/d' -i postfix-install
+      sed -e "s|@PACKAGE@|$out|" -i conf/post-install
 
-    # post-install need skip permissions check/set on all symlinks following to /nix/store
-    sed -e "s|@NIX_STORE@|$NIX_STORE|" -i conf/post-install
-  '';
+      # post-install need skip permissions check/set on all symlinks following to /nix/store
+      sed -e "s|@NIX_STORE@|$NIX_STORE|" -i conf/post-install
+    '';
 
   postConfigure = ''
     export command_directory=$out/sbin
@@ -77,6 +139,8 @@ in stdenv.mkDerivation rec {
     make makefiles CCARGS='${ccargs}' AUXLIBS='${auxlibs}'
   '';
 
+  enableParallelBuilding = true;
+
   NIX_LDFLAGS = lib.optionalString withLDAP "-llber";
 
   installTargets = [ "non-interactive-package" ];
@@ -89,18 +153,49 @@ in stdenv.mkDerivation rec {
     cp -rv installdir/etc $out
     sed -e '/^PATH=/d' -i $out/libexec/postfix/post-install
     wrapProgram $out/libexec/postfix/post-install \
-      --prefix PATH ":" ${lib.makeBinPath [ coreutils findutils gnugrep ]}
+      --prefix PATH ":" ${
+        lib.makeBinPath [
+          coreutils
+          findutils
+          gnugrep
+        ]
+      }
     wrapProgram $out/libexec/postfix/postfix-script \
-      --prefix PATH ":" ${lib.makeBinPath [ coreutils findutils gnugrep gawk gnused ]}
+      --prefix PATH ":" ${
+        lib.makeBinPath [
+          coreutils
+          findutils
+          gnugrep
+          gawk
+          gnused
+        ]
+      }
+
+    # Avoid dev-only outputs from being retained in final closure.
+    # `makedefs.out` is a documenttation-only file. It should be safe
+    # to store invalid store paths there.
+    sed -e "s|$NIX_STORE/[a-z0-9]\{32\}-|$NIX_STORE/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-|g" -i $out/etc/postfix/makedefs.out
   '';
 
-  passthru.tests = { inherit (nixosTests) postfix postfix-raise-smtpd-tls-security-level; };
+  passthru = {
+    tests = { inherit (nixosTests) postfix postfix-raise-smtpd-tls-security-level; };
+
+    updateScript = ./update.sh;
+  };
 
   meta = with lib; {
     homepage = "http://www.postfix.org/";
-    description = "A fast, easy to administer, and secure mail server";
-    license = with licenses; [ ipl10 epl20 ];
+    changelog = "https://www.postfix.org/announcements/postfix-${version}.html";
+    description = "Fast, easy to administer, and secure mail server";
+    license = with licenses; [
+      ipl10
+      epl20
+    ];
     platforms = platforms.linux;
-    maintainers = with maintainers; [ globin dotlambda lewo ];
+    maintainers = with maintainers; [
+      globin
+      dotlambda
+      lewo
+    ];
   };
 }

@@ -1,30 +1,34 @@
-{ stdenv
-, lib
-, fetchurl
-, unzip
-, qtbase
-, qtmacextras
-, qmake
-, fixDarwinDylibNames
+{
+  stdenv,
+  lib,
+  fetchurl,
+  unzip,
+  qtbase,
+  qtmacextras ? null,
+  qmake,
+  fixDarwinDylibNames,
+  darwin,
 }:
 
 stdenv.mkDerivation rec {
   pname = "qscintilla-qt5";
-  version = "2.13.1";
+  version = "2.13.2";
 
   src = fetchurl {
     url = "https://www.riverbankcomputing.com/static/Downloads/QScintilla/${version}/QScintilla_src-${version}.tar.gz";
-    sha256 = "gA49IHGpa8zNdYE0avDS/ij8MM1oUwy4MCaF0BOv1Uo=";
+    sha256 = "sha256-tsfl8ntR0l8J/mz4Sumn8Idq8NZdjMtVEQnm57JYhfQ=";
   };
 
   sourceRoot = "QScintilla_src-${version}/src";
 
   buildInputs = [ qtbase ];
 
-  propagatedBuildInputs = lib.optionals stdenv.isDarwin [ qtmacextras ];
+  propagatedBuildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ qtmacextras ];
 
-  nativeBuildInputs = [ unzip qmake ]
-    ++ lib.optionals stdenv.isDarwin [ fixDarwinDylibNames ];
+  nativeBuildInputs = [
+    unzip
+    qmake
+  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ fixDarwinDylibNames ];
 
   # Make sure that libqscintilla2.so is available in $out/lib since it is expected
   # by some packages such as sqlitebrowser
@@ -44,7 +48,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = with lib; {
-    description = "A Qt port of the Scintilla text editing library";
+    description = "Qt port of the Scintilla text editing library";
     longDescription = ''
       QScintilla is a port to Qt of Neil Hodgson's Scintilla C++ editor
       control.
@@ -63,5 +67,7 @@ stdenv.mkDerivation rec {
     license = with licenses; [ gpl3 ]; # and commercial
     maintainers = with maintainers; [ peterhoeg ];
     platforms = platforms.unix;
+    # ld: library not found for -lcups
+    broken = stdenv.hostPlatform.isDarwin && lib.versionAtLeast qtbase.version "6";
   };
 }

@@ -1,90 +1,138 @@
-{ config, lib, pkgs, ... }:
-
-with lib;
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.services.gollum;
 in
 
 {
-  options.services.gollum = {
-    enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable the Gollum service.";
-    };
+  imports = [
+    (lib.mkRemovedOptionModule
+      [
+        "services"
+        "gollum"
+        "mathjax"
+      ]
+      "MathJax rendering might be discontinued in the future, use services.gollum.math instead to enable KaTeX rendering or file a PR if you really need Mathjax"
+    )
+  ];
 
-    address = mkOption {
-      type = types.str;
+  options.services.gollum = {
+    enable = lib.mkEnableOption "Gollum, a git-powered wiki service";
+
+    address = lib.mkOption {
+      type = lib.types.str;
       default = "0.0.0.0";
       description = "IP address on which the web server will listen.";
     };
 
-    port = mkOption {
-      type = types.int;
+    port = lib.mkOption {
+      type = lib.types.port;
       default = 4567;
       description = "Port on which the web server will run.";
     };
 
-    extraConfig = mkOption {
-      type = types.lines;
+    extraConfig = lib.mkOption {
+      type = lib.types.lines;
       default = "";
       description = "Content of the configuration file";
     };
 
-    mathjax = mkOption {
-      type = types.bool;
+    math = lib.mkOption {
+      type = lib.types.bool;
       default = false;
-      description = "Enable support for math rendering using MathJax";
+      description = "Enable support for math rendering using KaTeX";
     };
 
-    allowUploads = mkOption {
-      type = types.nullOr (types.enum [ "dir" "page" ]);
+    allowUploads = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.enum [
+          "dir"
+          "page"
+        ]
+      );
       default = null;
       description = "Enable uploads of external files";
     };
 
-    emoji = mkOption {
-      type = types.bool;
+    user-icons = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.enum [
+          "gravatar"
+          "identicon"
+        ]
+      );
+      default = null;
+      description = "Enable specific user icons for history view";
+    };
+
+    emoji = lib.mkOption {
+      type = lib.types.bool;
       default = false;
       description = "Parse and interpret emoji tags";
     };
 
-    h1-title = mkOption {
-      type = types.bool;
+    h1-title = lib.mkOption {
+      type = lib.types.bool;
       default = false;
       description = "Use the first h1 as page title";
     };
 
-    branch = mkOption {
-      type = types.str;
+    no-edit = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Disable editing pages";
+    };
+
+    local-time = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Use the browser's local timezone instead of the server's for displaying dates.";
+    };
+
+    branch = lib.mkOption {
+      type = lib.types.str;
       default = "master";
       example = "develop";
       description = "Git branch to serve";
     };
 
-    stateDir = mkOption {
-      type = types.path;
+    stateDir = lib.mkOption {
+      type = lib.types.path;
       default = "/var/lib/gollum";
       description = "Specifies the path of the repository directory. If it does not exist, Gollum will create it on startup.";
     };
 
+    package = lib.mkPackageOption pkgs "gollum" { };
+
+    user = lib.mkOption {
+      type = lib.types.str;
+      default = "gollum";
+      description = "Specifies the owner of the wiki directory";
+    };
+
+    group = lib.mkOption {
+      type = lib.types.str;
+      default = "gollum";
+      description = "Specifies the owner group of the wiki directory";
+    };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
 
-    users.users.gollum = {
-      group = config.users.users.gollum.name;
+    users.users.gollum = lib.mkIf (cfg.user == "gollum") {
+      group = cfg.group;
       description = "Gollum user";
       createHome = false;
       isSystemUser = true;
     };
 
-    users.groups.gollum = { };
+    users.groups."${cfg.group}" = { };
 
-    systemd.tmpfiles.rules = [
-      "d '${cfg.stateDir}' - ${config.users.users.gollum.name} ${config.users.groups.gollum.name} - -"
-    ];
+    systemd.tmpfiles.rules = [ "d '${cfg.stateDir}' - ${cfg.user} ${cfg.group} - -" ];
 
     systemd.services.gollum = {
       description = "Gollum wiki";
@@ -98,24 +146,30 @@ in
       '';
 
       serviceConfig = {
-        User = config.users.users.gollum.name;
-        Group = config.users.groups.gollum.name;
+        User = cfg.user;
+        Group = cfg.group;
         WorkingDirectory = cfg.stateDir;
         ExecStart = ''
-          ${pkgs.gollum}/bin/gollum \
+          ${cfg.package}/bin/gollum \
             --port ${toString cfg.port} \
             --host ${cfg.address} \
             --config ${pkgs.writeText "gollum-config.rb" cfg.extraConfig} \
             --ref ${cfg.branch} \
-            ${optionalString cfg.mathjax "--mathjax"} \
-            ${optionalString cfg.emoji "--emoji"} \
-            ${optionalString cfg.h1-title "--h1-title"} \
-            ${optionalString (cfg.allowUploads != null) "--allow-uploads ${cfg.allowUploads}"} \
+            ${lib.optionalString cfg.math "--math"} \
+            ${lib.optionalString cfg.emoji "--emoji"} \
+            ${lib.optionalString cfg.h1-title "--h1-title"} \
+            ${lib.optionalString cfg.no-edit "--no-edit"} \
+            ${lib.optionalString cfg.local-time "--local-time"} \
+            ${lib.optionalString (cfg.allowUploads != null) "--allow-uploads ${cfg.allowUploads}"} \
+            ${lib.optionalString (cfg.user-icons != null) "--user-icons ${cfg.user-icons}"} \
             ${cfg.stateDir}
         '';
       };
     };
   };
 
-  meta.maintainers = with lib.maintainers; [ erictapen ];
+  meta.maintainers = with lib.maintainers; [
+    erictapen
+    bbenno
+  ];
 }

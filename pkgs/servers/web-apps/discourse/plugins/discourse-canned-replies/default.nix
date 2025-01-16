@@ -1,12 +1,16 @@
-{ lib, mkDiscoursePlugin, fetchFromGitHub }:
+{
+  lib,
+  mkDiscoursePlugin,
+  fetchFromGitHub,
+}:
 
 mkDiscoursePlugin {
   name = "discourse-canned-replies";
   src = fetchFromGitHub {
     owner = "discourse";
     repo = "discourse-canned-replies";
-    rev = "598946bc92171426792f120f0a68ad4ecaae1c91";
-    sha256 = "sha256-HLrmj/dHj6wWUEqsFAh8gIPaZCIaXN1kZo17UHJwP70=";
+    rev = "732598b6cdc86c74622bb15bfeaebb05611bbc25";
+    sha256 = "sha256-t0emNsPT8o0ralUedt33ufH0VLl4/12lVBBCnzfdRxE=";
   };
   meta = with lib; {
     homepage = "https://github.com/discourse/discourse-canned-replies";

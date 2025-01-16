@@ -1,9 +1,10 @@
-{ build-idris-package
-, fetchFromGitHub
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  lib,
 }:
-build-idris-package  {
-  name = "vdom";
+build-idris-package {
+  pname = "vdom";
   version = "0.6.0";
 
   ipkgName = "idris-vdom";

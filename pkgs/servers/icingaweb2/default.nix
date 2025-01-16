@@ -1,14 +1,21 @@
-{ stdenvNoCC, lib, fetchFromGitHub, makeWrapper, php }:
+{
+  stdenvNoCC,
+  lib,
+  fetchFromGitHub,
+  makeWrapper,
+  php,
+  nixosTests,
+}:
 
 stdenvNoCC.mkDerivation rec {
   pname = "icingaweb2";
-  version = "2.9.5";
+  version = "2.12.2";
 
   src = fetchFromGitHub {
     owner = "Icinga";
     repo = "icingaweb2";
     rev = "v${version}";
-    sha256 = "sha256-yKnG+wxWVgLwG9hRRiLPmNzm9pBrf/mh5V/lLdj8Sv8=";
+    hash = "sha256-RwKVANFlFWKgMBwlLmX0P4PR+eTN3uz//kMdJ8dLZuU=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
@@ -21,6 +28,8 @@ stdenvNoCC.mkDerivation rec {
     wrapProgram $out/bin/icingacli --prefix PATH : "${lib.makeBinPath [ php ]}"
   '';
 
+  passthru.tests = { inherit (nixosTests) icingaweb2; };
+
   meta = with lib; {
     description = "Webinterface for Icinga 2";
     longDescription = ''
@@ -29,7 +38,8 @@ stdenvNoCC.mkDerivation rec {
     '';
     homepage = "https://www.icinga.com/products/icinga-web-2/";
     license = licenses.gpl2Only;
+    maintainers = teams.helsinki-systems.members;
+    mainProgram = "icingacli";
     platforms = platforms.all;
-    maintainers = with maintainers; [ das_j ];
   };
 }

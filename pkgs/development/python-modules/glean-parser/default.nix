@@ -1,61 +1,70 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-# build inputs
-, appdirs
-, click
-, diskcache
-, jinja2
-, jsonschema
-, pyyaml
-, yamllint
+{
+  lib,
+  appdirs,
+  buildPythonPackage,
+  click,
+  diskcache,
+  fetchPypi,
+  jinja2,
+  jsonschema,
+  pytestCheckHook,
+  pyyaml,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
-  pname = "glean_parser";
-  version = "4.4.0";
-
-  disabled = pythonOlder "3.6";
+  pname = "glean-parser";
+  version = "14.5.2";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "3ae1435b183936a49368806421df27ab944f1802e86a02b38b8e08e53ff0aac5";
+    pname = "glean_parser";
+    inherit version;
+    hash = "sha256-7EZtFRYYk477A/F8FsrrEmZr2InGRWK440vNLZXgcvc=";
   };
 
   postPatch = ''
-    substituteInPlace setup.py --replace "pytest-runner" ""
+    substituteInPlace setup.py \
+      --replace-fail "pytest-runner" ""
   '';
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     appdirs
     click
     diskcache
     jinja2
     jsonschema
     pyyaml
-    yamllint
-  ];
-  nativeBuildInputs = [
-    setuptools-scm
   ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  preCheck = ''
+    export HOME=$TMPDIR
+  '';
+
   disabledTests = [
-    # https://bugzilla.mozilla.org/show_bug.cgi?id=1741668
+    # Network access
     "test_validate_ping"
+    "test_logging"
+    # Fails since yamllint 1.27.x
+    "test_yaml_lint"
   ];
 
   pythonImportsCheck = [ "glean_parser" ];
 
-  meta = with lib; {
+  meta = {
     description = "Tools for parsing the metadata for Mozilla's glean telemetry SDK";
+    mainProgram = "glean_parser";
     homepage = "https://github.com/mozilla/glean_parser";
-    license = licenses.mpl20;
-    maintainers = [ maintainers.kvark ];
+    changelog = "https://github.com/mozilla/glean_parser/blob/v${version}/CHANGELOG.md";
+    license = lib.licenses.mpl20;
+    maintainers = [ ];
   };
 }

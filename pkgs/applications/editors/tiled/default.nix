@@ -1,28 +1,98 @@
-{ lib, mkDerivation, fetchFromGitHub, pkg-config, qmake
-, python3, qtbase, qttools }:
+{
+  lib,
+  stdenv,
+  env,
+  fetchFromGitHub,
+  pkg-config,
+  qbs,
+  wrapQtAppsHook,
+  qtbase,
+  qtdeclarative,
+  qttools,
+  qtwayland,
+  qtsvg,
+  zlib,
+  zstd,
+  libGL,
+}:
 
-mkDerivation rec {
+let
+  qtEnv = env "tiled-qt-env" [
+    qtbase
+    qtdeclarative
+    qtsvg
+    qttools
+    qtwayland
+  ];
+in
+
+stdenv.mkDerivation rec {
   pname = "tiled";
-  version = "1.7.2";
+  version = "1.11.1";
 
   src = fetchFromGitHub {
-    owner = "bjorn";
+    owner = "mapeditor";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-yQWe27zLWOnRQk+MEpuWs8CFP/le3PQ+yziB0ikNang=";
+    sha256 = "sha256-9cgGweo0D43U/puS82JCmBrikKe/TclHsrghQ4OZVEo=";
   };
 
-  nativeBuildInputs = [ pkg-config qmake ];
-  buildInputs = [ python3 qtbase qttools ];
+  nativeBuildInputs = [
+    pkg-config
+    qbs
+    wrapQtAppsHook
+  ];
+  buildInputs = [
+    qtEnv
+    zlib
+    zstd
+    libGL
+  ];
+
+  outputs = [
+    "out"
+    "dev"
+  ];
+
+  strictDeps = true;
+
+  configurePhase = ''
+    runHook preConfigure
+
+    qbs setup-qt --settings-dir . ${qtEnv}/bin/qmake qtenv
+    qbs config --settings-dir . defaultProfile qtenv
+    qbs resolve --settings-dir . config:release qbs.installPrefix:/ projects.Tiled.installHeaders:true
+
+    runHook postConfigure
+  '';
+
+  buildPhase = ''
+    runHook preBuild
+
+    qbs build --settings-dir . config:release
+
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+
+    qbs install --settings-dir . --install-root $out config:release
+
+    runHook postInstall
+  '';
 
   meta = with lib; {
     description = "Free, easy to use and flexible tile map editor";
     homepage = "https://www.mapeditor.org/";
     license = with licenses; [
-      bsd2	# libtiled and tmxviewer
-      gpl2Plus	# all the rest
+      bsd2 # libtiled and tmxviewer
+      gpl2Plus # all the rest
     ];
-    maintainers = with maintainers; [ dywedir ];
+    maintainers = with maintainers; [
+      dywedir
+      ryan4yin
+    ];
     platforms = platforms.linux;
   };
 }

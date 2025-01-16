@@ -1,14 +1,18 @@
-{ lib, stdenv, fetchFromGitHub }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+}:
 
 stdenv.mkDerivation rec {
   pname = "your-editor";
-  version = "1303";
+  version = "1601";
 
   src = fetchFromGitHub {
     owner = "your-editor";
     repo = "yed";
     rev = version;
-    sha256 = "BWy/icQs8hVtNeM/mCi6LOah1UG0elU/DgCmfaIPD64=";
+    sha256 = "sha256-pa9ibXyuWq7jRYsn3bGdqvLWbwQO2VYsP6Bk+BayQ8o=";
   };
 
   installPhase = ''

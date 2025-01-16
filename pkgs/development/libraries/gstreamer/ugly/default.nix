@@ -15,21 +15,23 @@
 , x264
 , libintl
 , lib
-, opencore-amr
 , IOKit
 , CoreFoundation
 , DiskArbitration
+, enableGplPlugins ? true
+# Checks meson.is_cross_build(), so even canExecute isn't enough.
+, enableDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform, hotdoc
 }:
 
 stdenv.mkDerivation rec {
   pname = "gst-plugins-ugly";
-  version = "1.18.5";
+  version = "1.24.10";
 
   outputs = [ "out" "dev" ];
 
   src = fetchurl {
     url = "https://gstreamer.freedesktop.org/src/${pname}/${pname}-${version}.tar.xz";
-    sha256 = "sha256-3zKAPpj4qZeTc/osp+BeYvl3sQl1dtOoBhnZ9cafZtk=";
+    hash = "sha256-nfb9haclYkHvuyX4SzN1deOzRSZvXas4STceRpR3nxg=";
   };
 
   nativeBuildInputs = [
@@ -38,29 +40,40 @@ stdenv.mkDerivation rec {
     gettext
     pkg-config
     python3
+  ] ++ lib.optionals enableDocumentation [
+    hotdoc
   ];
 
   buildInputs = [
     gst-plugins-base
     orc
+    libintl
+  ] ++ lib.optionals enableGplPlugins [
     a52dec
     libcdio
     libdvdread
     libmad
     libmpeg2
     x264
-    libintl
-    opencore-amr
-  ] ++ lib.optionals stdenv.isDarwin [
+  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
     IOKit
     CoreFoundation
     DiskArbitration
   ];
 
   mesonFlags = [
-    "-Ddoc=disabled" # `hotdoc` not packaged in nixpkgs as of writing
     "-Dsidplay=disabled" # sidplay / sidplay/player.h isn't packaged in nixpkgs as of writing
-  ];
+    (lib.mesonEnable "doc" enableDocumentation)
+  ] ++ (if enableGplPlugins then [
+    "-Dgpl=enabled"
+  ] else [
+    "-Da52dec=disabled"
+    "-Dcdio=disabled"
+    "-Ddvdread=disabled"
+    "-Dmpeg2dec=disabled"
+    "-Dsidplay=disabled"
+    "-Dx264=disabled"
+  ]);
 
   postPatch = ''
     patchShebangs \
@@ -76,7 +89,7 @@ stdenv.mkDerivation rec {
       the plug-ins or the supporting libraries might not be how we'd
       like. The code might be widely known to present patent problems.
     '';
-    license = licenses.lgpl2Plus;
+    license = if enableGplPlugins then licenses.gpl2Plus else licenses.lgpl2Plus;
     platforms = platforms.unix;
     maintainers = with maintainers; [ matthewbauer ];
   };

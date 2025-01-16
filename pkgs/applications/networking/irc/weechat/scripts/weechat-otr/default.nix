@@ -1,4 +1,13 @@
-{ lib, stdenv, substituteAll, buildEnv, fetchgit, fetchFromGitHub, python3Packages, gmp }:
+{
+  lib,
+  stdenv,
+  replaceVars,
+  buildEnv,
+  fetchgit,
+  fetchFromGitHub,
+  python3Packages,
+  gmp,
+}:
 
 let
   # pure-python-otr (potr) requires an older version of pycrypto, which is
@@ -24,6 +33,9 @@ let
 
     buildInputs = [ gmp ];
 
+    # Tests are relying on old Python 2 modules.
+    doCheck = false;
+
     preConfigure = ''
       sed -i 's,/usr/include,/no-such-dir,' configure
       sed -i "s!,'/usr/include/'!!" setup.py
@@ -33,7 +45,8 @@ let
   potr = python3Packages.potr.overridePythonAttrs (oldAttrs: {
     propagatedBuildInputs = [ pycrypto ];
   });
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation rec {
   pname = "weechat-otr";
   version = "1.9.2";
 
@@ -45,12 +58,16 @@ in stdenv.mkDerivation rec {
   };
 
   patches = [
-    (substituteAll {
-      src = ./libpath.patch;
-      env = "${buildEnv {
-        name = "weechat-otr-env";
-        paths = [ potr pycrypto ];
-      }}/${python3Packages.python.sitePackages}";
+    (replaceVars ./libpath.patch {
+      env = "${
+        buildEnv {
+          name = "weechat-otr-env";
+          paths = [
+            potr
+            pycrypto
+          ];
+        }
+      }/${python3Packages.python.sitePackages}";
     })
   ];
 
@@ -66,5 +83,9 @@ in stdenv.mkDerivation rec {
     license = licenses.gpl3;
     maintainers = with maintainers; [ oxzi ];
     description = "WeeChat script for Off-the-Record messaging";
+    knownVulnerabilities = [
+      "There is no upstream release since 2018-03."
+      "Utilizes deprecated and vulnerable pycrypto library with Debian patches from 2020-04."
+    ];
   };
 }

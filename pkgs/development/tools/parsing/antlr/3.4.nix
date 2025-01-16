@@ -1,10 +1,15 @@
-{lib, stdenv, fetchurl, jre}:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  jre,
+}:
 
 stdenv.mkDerivation rec {
   pname = "antlr";
   version = "3.4";
   src = fetchurl {
-    url ="https://www.antlr3.org/download/antlr-${version}-complete.jar";
+    url = "https://www.antlr3.org/download/antlr-${version}-complete.jar";
     sha256 = "1xqbam8vf04q5fasb0m2n1pn5dbp2yw763sj492ncq04c5mqcglx";
   };
 
@@ -33,6 +38,7 @@ stdenv.mkDerivation rec {
       walk parse trees.
     '';
     homepage = "https://www.antlr.org/";
+    sourceProvenance = with sourceTypes; [ binaryBytecode ];
     license = licenses.bsd3;
     platforms = platforms.linux ++ platforms.darwin;
   };

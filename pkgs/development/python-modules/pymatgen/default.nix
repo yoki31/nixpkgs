@@ -1,62 +1,98 @@
-{ lib, buildPythonPackage, fetchPypi
-, enum34
-, glibcLocales
-, matplotlib
-, monty
-, networkx
-, numpy
-, palettable
-, pandas
-, plotly
-, pydispatcher
-, requests
-, ruamel-yaml
-, scipy
-, six
-, spglib
-, sympy
-, tabulate
-, uncertainties
+{
+  lib,
+  ase,
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  glibcLocales,
+  joblib,
+  matplotlib,
+  monty,
+  networkx,
+  oldest-supported-numpy,
+  palettable,
+  pandas,
+  plotly,
+  pybtex,
+  pydispatcher,
+  pytest-xdist,
+  pytestCheckHook,
+  pythonOlder,
+  requests,
+  ruamel-yaml,
+  scipy,
+  seekpath,
+  setuptools,
+  spglib,
+  sympy,
+  tabulate,
+  uncertainties,
 }:
 
 buildPythonPackage rec {
   pname = "pymatgen";
-  version = "2022.0.17";
+  version = "2024.9.17.1";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "7103b89b889bb940709eea53226d3c9298584ad9ab42ab8c8f9de3872d7d969b";
+  disabled = pythonOlder "3.8";
+
+  src = fetchFromGitHub {
+    owner = "materialsproject";
+    repo = "pymatgen";
+    tag = "v${version}";
+    hash = "sha256-o76bGItldcLfgZ5KDw2uL0GJvyljQJEwISR0topVR44=";
   };
 
-  nativeBuildInputs = [ glibcLocales ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    enum34
+  nativeBuildInputs = [
+    cython
+    glibcLocales
+  ];
+
+  dependencies = [
     matplotlib
     monty
     networkx
-    numpy
+    oldest-supported-numpy
     palettable
     pandas
     plotly
+    pybtex
     pydispatcher
     requests
     ruamel-yaml
     scipy
-    six
     spglib
     sympy
     tabulate
     uncertainties
   ];
 
-  # No tests in pypi tarball.
-  doCheck = false;
+  optional-dependencies = {
+    ase = [ ase ];
+    joblib = [ joblib ];
+    seekpath = [ seekpath ];
+  };
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-xdist
+  ] ++ lib.flatten (builtins.attrValues optional-dependencies);
+
+  preCheck = ''
+    # ensure tests can find these
+    export PMG_TEST_FILES_DIR="$(realpath ./tests/files)"
+    # some tests cover the command-line scripts
+    export PATH=$out/bin:$PATH
+  '';
+
   pythonImportsCheck = [ "pymatgen" ];
 
   meta = with lib; {
-    description = "A robust materials analysis code that defines core object representations for structures and molecules";
+    description = "Robust materials analysis code that defines core object representations for structures and molecules";
     homepage = "https://pymatgen.org/";
+    changelog = "https://github.com/materialsproject/pymatgen/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ psyanticy ];
   };

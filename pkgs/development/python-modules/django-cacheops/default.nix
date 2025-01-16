@@ -1,36 +1,80 @@
-{ buildPythonPackage
-, fetchPypi
-, lib
-, django
-, funcy
-, redis
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  django,
+  funcy,
+  redis,
+  six,
+  pytestCheckHook,
+  pytest-django,
+  mock,
+  dill,
+  jinja2,
+  before-after,
+  pythonOlder,
+  nettools,
+  pkgs,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "django-cacheops";
-  version = "6.0";
+  version = "7.1";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "78e161ebd96a32e28e19ec7da31f2afed9e62a79726b8b5f0ed12dd16c2e5841";
+    pname = "django_cacheops";
+    inherit version;
+    hash = "sha256-7Aeau5aFVzIe4gjGJ0ggIxgg+YymN33alx8EmBvCq1I=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "funcy" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     django
     funcy
     redis
     six
   ];
 
-  # tests need a redis server
-  # pythonImportsCheck not possible since DJANGO_SETTINGS_MODULE needs to be set
-  doCheck = false;
+  __darwinAllowLocalNetworking = true;
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-django
+    mock
+    dill
+    jinja2
+    before-after
+    nettools
+    pkgs.redis
+  ];
+
+  preCheck = ''
+    redis-server &
+    REDIS_PID=$!
+    while ! redis-cli --scan ; do
+      echo waiting for redis to be ready
+      sleep 1
+    done
+  '';
+
+  postCheck = ''
+    kill $REDIS_PID
+  '';
+
+  DJANGO_SETTINGS_MODULE = "tests.settings";
 
   meta = with lib; {
-    description = "A slick ORM cache with automatic granular event-driven invalidation for Django";
+    description = "Slick ORM cache with automatic granular event-driven invalidation for Django";
     homepage = "https://github.com/Suor/django-cacheops";
+    changelog = "https://github.com/Suor/django-cacheops/blob/${version}/CHANGELOG";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ petabyteboy ];
+    maintainers = with maintainers; [ onny ];
   };
 }

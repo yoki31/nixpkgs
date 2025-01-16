@@ -1,42 +1,66 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, nose
-, python-dateutil
-, ipython_genutils
-, decorator
-, pyzmq
-, ipython
-, jupyter-client
-, ipykernel
-, tornado
-, isPy3k
-, futures ? null
+{
+  lib,
+  buildPythonPackage,
+  decorator,
+  fetchPypi,
+  hatchling,
+  importlib-metadata,
+  ipykernel,
+  ipython,
+  jupyter-client,
+  psutil,
+  python-dateutil,
+  pythonOlder,
+  pyzmq,
+  tornado,
+  tqdm,
+  traitlets,
 }:
 
 buildPythonPackage rec {
   pname = "ipyparallel";
-  version = "6.3.0";
+  version = "9.0.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0a97b276c62db633e9e97a816282bdd166f9df74e28204f0c8fa54b71944cfdc";
+    hash = "sha256-cGAcuvmhadNQ/+IsgtW73+bf5MTfAoNtmZDpxVm1vLY=";
   };
 
-  buildInputs = [ nose ];
+  # We do not need the jupyterlab build dependency, because we do not need to
+  # build any JS components; these are present already in the PyPI artifact.
+  #
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace '"jupyterlab==4.*",' ""
+  '';
 
-  propagatedBuildInputs = [ python-dateutil ipython_genutils decorator pyzmq ipython jupyter-client ipykernel tornado
-  ] ++ lib.optionals (!isPy3k) [ futures ];
+  build-system = [ hatchling ];
+
+  dependencies = [
+    decorator
+    ipykernel
+    ipython
+    jupyter-client
+    psutil
+    python-dateutil
+    pyzmq
+    tornado
+    tqdm
+    traitlets
+  ] ++ lib.optional (pythonOlder "3.10") importlib-metadata;
 
   # Requires access to cluster
   doCheck = false;
 
-  disabled = !isPy3k;
+  pythonImportsCheck = [ "ipyparallel" ];
 
-  meta = {
+  meta = with lib; {
     description = "Interactive Parallel Computing with IPython";
-    homepage = "http://ipython.org/";
-    license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ fridh ];
+    homepage = "https://ipyparallel.readthedocs.io/";
+    changelog = "https://github.com/ipython/ipyparallel/blob/${version}/docs/source/changelog.md";
+    license = licenses.bsd3;
   };
 }

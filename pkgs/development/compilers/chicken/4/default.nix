@@ -1,9 +1,11 @@
-{ lib, newScope } :
+{ lib, newScope }:
 let
   callPackage = newScope self;
 
   self = {
-    pkgs = self;
+    pkgs = self // {
+      recurseForDerivations = false;
+    };
 
     fetchegg = callPackage ./fetchegg { };
 
@@ -13,9 +15,10 @@ let
       bootstrap-chicken = self.chicken.override { bootstrap-chicken = null; };
     };
 
-    chickenEggs = callPackage ./eggs.nix { };
+    chickenEggs = lib.recurseIntoAttrs (callPackage ./eggs.nix { });
 
     egg2nix = callPackage ./egg2nix.nix { };
   };
 
-in lib.recurseIntoAttrs self
+in
+self

@@ -1,45 +1,60 @@
-{ lib
-, buildPythonPackage
-, cookies
-, fetchPypi
-, mock
-, pytest-localserver
-, pytestCheckHook
-, pythonOlder
-, requests
-, six
-, urllib3
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytest-httpserver,
+  pytestCheckHook,
+  pythonOlder,
+  pyyaml,
+  requests,
+  setuptools,
+  tomli,
+  tomli-w,
+  types-pyyaml,
+  types-toml,
+  urllib3,
 }:
 
 buildPythonPackage rec {
   pname = "responses";
-  version = "0.16.0";
+  version = "0.25.3";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-ouOsoqgnfmElfNOxwVSx3Q14Kxrj04t/o3y+P+tTF5E=";
+  disabled = pythonOlder "3.8";
+
+  __darwinAllowLocalNetworking = true;
+
+  src = fetchFromGitHub {
+    owner = "getsentry";
+    repo = pname;
+    tag = version;
+    hash = "sha256-+iRrmRAe8RWcts2LMFvykroQ5sL7+hW6Wrs7Kd1mzBM=";
   };
 
+  nativeBuildInputs = [ setuptools ];
+
   propagatedBuildInputs = [
+    pyyaml
     requests
+    types-pyyaml
+    types-toml
     urllib3
-    six
-  ] ++ lib.optionals (pythonOlder "3.4") [
-    cookies
-  ] ++ lib.optionals (pythonOlder "3.3") [
-    mock
   ];
 
-  checkInputs = [
-    pytest-localserver
+  nativeCheckInputs = [
+    pytest-asyncio
+    pytest-httpserver
     pytestCheckHook
-  ];
+    tomli-w
+  ] ++ lib.optionals (pythonOlder "3.11") [ tomli ];
 
   pythonImportsCheck = [ "responses" ];
 
   meta = with lib; {
     description = "Python module for mocking out the requests Python library";
     homepage = "https://github.com/getsentry/responses";
+    changelog = "https://github.com/getsentry/responses/blob/${version}/CHANGES";
     license = licenses.asl20;
     maintainers = with maintainers; [ fab ];
   };

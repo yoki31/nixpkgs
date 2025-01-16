@@ -1,61 +1,78 @@
-{ lib
-, black
-, boto3
-, buildPythonPackage
-, fetchFromGitHub
-, isort
-, jinja2
-, md-toc
-, mdformat
-, poetry-core
-, pyparsing
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  black,
+  boto3,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  isort,
+  jinja2,
+  md-toc,
+  mdformat,
+  newversion,
+  pip,
+  poetry-core,
+  pyparsing,
+  pytest-mock,
+  pytestCheckHook,
+  pythonOlder,
+  requests-mock,
+  ruff,
+  setuptools,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "mypy-boto3-builder";
-  version = "5.5.0";
-  format = "pyproject";
+  version = "8.5.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.12";
 
   src = fetchFromGitHub {
-    owner = "vemel";
+    owner = "youtype";
     repo = "mypy_boto3_builder";
-    rev = version;
-    sha256 = "sha256-cFe8d6w28VFTNyj/ABWHkFQDfnM4aTrNZ+WUw5g8H5I=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-ipi31Kbh7GdKQl7PzvR4tSWzjjHogrpHPPgzn8V/RTc=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     black
     boto3
+    cryptography
     isort
     jinja2
     md-toc
     mdformat
+    newversion
+    pip
     pyparsing
+    ruff
+    setuptools
+    typing-extensions
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
+    pytest-mock
+    requests-mock
     pytestCheckHook
-  ];
-
-  disabledTests = [
-    # Should be fixed with 5.x
-    "test_get_types"
   ];
 
   pythonImportsCheck = [ "mypy_boto3_builder" ];
 
+  disabledTests = [
+    # Tests require network access
+    "TestBotocoreChangelogChangelog"
+  ];
+
   meta = with lib; {
     description = "Type annotations builder for boto3";
-    homepage = "https://vemel.github.io/mypy_boto3_builder/";
+    homepage = "https://github.com/youtype/mypy_boto3_builder";
+    changelog = "https://github.com/youtype/mypy_boto3_builder/releases/tag/${version}";
     license = with licenses; [ bsd3 ];
     maintainers = with maintainers; [ fab ];
+    mainProgram = "mypy_boto3_builder";
   };
 }

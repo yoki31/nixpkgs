@@ -1,12 +1,14 @@
-{ lib, stdenv
-, fetchFromGitHub
-, zlib
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  zlib,
 }:
 
 let
-  version = "0.9";
+  version = "0.10.1";
   tag = "v${version}";
-  rev = "15773561e40ca5c8cffe0a618c544b6cfdc5ad7e";
+  rev = "b6754f574f8846eb842feba4ccbeeecb10bdfacc";
 in
 
 stdenv.mkDerivation rec {
@@ -18,13 +20,14 @@ stdenv.mkDerivation rec {
     owner = "thepowersgang";
     repo = "mrustc";
     rev = tag;
-    sha256 = "194ny7vsks5ygiw7d8yxjmp1qwigd71ilchis6xjl6bb2sj97rd2";
+    hash = "sha256-sYnx5dUTaQbK4ugnSzAJwIUwZKPUhThmNA+WlY+LEWc=";
   };
 
   postPatch = ''
     sed -i 's/\$(shell git show --pretty=%H -s)/${rev}/' Makefile
     sed -i 's/\$(shell git symbolic-ref -q --short HEAD || git describe --tags --exact-match)/${tag}/' Makefile
     sed -i 's/\$(shell git diff-index --quiet HEAD; echo $$?)/0/' Makefile
+    sed '1i#include <limits>' -i src/trans/codegen_c.cpp
   '';
 
   strictDeps = true;
@@ -40,6 +43,7 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "Mutabah's Rust Compiler";
+    mainProgram = "mrustc";
     longDescription = ''
       In-progress alternative rust compiler, written in C++.
       Capable of building a fully-working copy of rustc,
@@ -47,7 +51,10 @@ stdenv.mkDerivation rec {
     '';
     inherit (src.meta) homepage;
     license = licenses.mit;
-    maintainers = with maintainers; [ progval r-burns ];
+    maintainers = with maintainers; [
+      progval
+      r-burns
+    ];
     platforms = [ "x86_64-linux" ];
   };
 }

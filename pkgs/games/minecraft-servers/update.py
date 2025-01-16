@@ -4,6 +4,7 @@
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -116,8 +117,11 @@ def get_latest_major_releases(releases: List[Version]) -> Dict[str, Version]:
     Version object for 1.16.5.
     """
     return {
-        major_release: sorted(releases, key=lambda x: x.id, reverse=True)[0]
-        for major_release, releases in group_major_releases(releases).items()
+        major_release: max(
+            (release for release in releases if get_major_release(release.id) == major_release),
+            key=lambda x: tuple(map(int, x.id.split('.'))),
+        )
+        for major_release in group_major_releases(releases)
     }
 
 
@@ -150,6 +154,6 @@ def generate() -> Dict[str, Dict[str, str]]:
 
 
 if __name__ == "__main__":
-    with open("versions.json", "w") as file:
+    with open(Path(__file__).parent / "versions.json", "w") as file:
         json.dump(generate(), file, indent=2)
         file.write("\n")

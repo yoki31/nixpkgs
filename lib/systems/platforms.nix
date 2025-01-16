@@ -1,3 +1,10 @@
+# Note: lib/systems/default.nix takes care of producing valid,
+# fully-formed "platform" values (e.g. hostPlatform, buildPlatform,
+# targetPlatform, etc) containing at least the minimal set of attrs
+# required (see types.parsedPlatform in lib/systems/parse.nix).  This
+# file takes an already-valid platform and further elaborates it with
+# optional fields; currently these are: linux-kernel, gcc, and rustc.
+
 { lib }:
 rec {
   pc = {
@@ -194,13 +201,21 @@ rec {
       target = "zImage";
     };
     gcc = {
-      arch = "armv6";
-      fpu = "vfp";
+      # https://en.wikipedia.org/wiki/Raspberry_Pi#Specifications
+      arch = "armv6kz";
+      fpu = "vfpv2";
     };
   };
 
   # Legacy attribute, for compatibility with existing configs only.
   raspberrypi2 = armv7l-hf-multiplatform;
+
+  # Nvidia Bluefield 2 (w. crypto support)
+  bluefield2 = {
+    gcc = {
+      arch = "armv8-a+fp+simd+crc+crypto";
+    };
+  };
 
   zero-gravitas = {
     linux-kernel = {
@@ -232,13 +247,6 @@ rec {
       cpu = "cortex-a7";
       fpu = "neon-vfpv4";
       float-abi = "hard";
-    };
-  };
-
-  scaleway-c1 = armv7l-hf-multiplatform // {
-    gcc = {
-      cpu = "cortex-a9";
-      fpu = "vfpv3";
     };
   };
 
@@ -482,6 +490,73 @@ rec {
     };
   };
 
+  # can execute on 32bit chip
+  gcc_mips32r2_o32 = {
+    gcc = {
+      arch = "mips32r2";
+      abi = "32";
+    };
+  };
+  gcc_mips32r6_o32 = {
+    gcc = {
+      arch = "mips32r6";
+      abi = "32";
+    };
+  };
+  gcc_mips64r2_n32 = {
+    gcc = {
+      arch = "mips64r2";
+      abi = "n32";
+    };
+  };
+  gcc_mips64r6_n32 = {
+    gcc = {
+      arch = "mips64r6";
+      abi = "n32";
+    };
+  };
+  gcc_mips64r2_64 = {
+    gcc = {
+      arch = "mips64r2";
+      abi = "64";
+    };
+  };
+  gcc_mips64r6_64 = {
+    gcc = {
+      arch = "mips64r6";
+      abi = "64";
+    };
+  };
+
+  # based on:
+  #   https://www.mail-archive.com/qemu-discuss@nongnu.org/msg05179.html
+  #   https://gmplib.org/~tege/qemu.html#mips64-debian
+  mips64el-qemu-linux-gnuabi64 = {
+    linux-kernel = {
+      name = "mips64el";
+      baseConfig = "64r2el_defconfig";
+      target = "vmlinuz";
+      autoModules = false;
+      DTB = true;
+      # for qemu 9p passthrough filesystem
+      extraConfig = ''
+        MIPS_MALTA y
+        PAGE_SIZE_4KB y
+        CPU_LITTLE_ENDIAN y
+        CPU_MIPS64_R2 y
+        64BIT y
+        CPU_MIPS64_R2 y
+
+        NET_9P y
+        NET_9P_VIRTIO y
+        9P_FS y
+        9P_FS_POSIX_ACL y
+        PCI y
+        VIRTIO_PCI y
+      '';
+    };
+  };
+
   ##
   ## Other
   ##
@@ -491,35 +566,47 @@ rec {
       name = "riscv-multiplatform";
       target = "Image";
       autoModules = true;
+      preferBuiltin = true;
       baseConfig = "defconfig";
       DTB = true;
-      extraConfig = ''
-        SERIAL_OF_PLATFORM y
-      '';
     };
   };
 
-  select = platform:
+  # This function takes a minimally-valid "platform" and returns an
+  # attrset containing zero or more additional attrs which should be
+  # included in the platform in order to further elaborate it.
+  select =
+    platform:
     # x86
-    /**/ if platform.isx86 then pc
+    if platform.isx86 then
+      pc
 
     # ARM
-    else if platform.isAarch32 then let
-      version = platform.parsed.cpu.version or null;
-      in     if version == null then pc
-        else if lib.versionOlder version "6" then sheevaplug
-        else if lib.versionOlder version "7" then raspberrypi
-        else armv7l-hf-multiplatform
+    else if platform.isAarch32 then
+      let
+        version = platform.parsed.cpu.version or null;
+      in
+      if version == null then
+        pc
+      else if lib.versionOlder version "6" then
+        sheevaplug
+      else if lib.versionOlder version "7" then
+        raspberrypi
+      else
+        armv7l-hf-multiplatform
 
     else if platform.isAarch64 then
-      if platform.isDarwin then apple-m1
-      else aarch64-multiplatform
+      if platform.isDarwin then apple-m1 else aarch64-multiplatform
 
-    else if platform.isRiscV then riscv-multiplatform
+    else if platform.isRiscV then
+      riscv-multiplatform
 
-    else if platform.parsed.cpu == lib.systems.parse.cpuTypes.mipsel then fuloong2f_n32
+    else if platform.parsed.cpu == lib.systems.parse.cpuTypes.mipsel then
+      (import ./examples.nix { inherit lib; }).mipsel-linux-gnu
 
-    else if platform.parsed.cpu == lib.systems.parse.cpuTypes.powerpc64le then powernv
+    else if platform.parsed.cpu == lib.systems.parse.cpuTypes.powerpc64le then
+      powernv
 
-    else pc;
+    else
+      { };
 }

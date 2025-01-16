@@ -1,19 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, six
+{
+  lib,
+  buildPythonPackage,
+  distutils,
+  fetchPypi,
+  pythonOlder,
+  setuptools,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "thrift";
-  version = "0.15.0";
+  version = "0.21.0";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "87c8205a71cf8bbb111cb99b1f7495070fbc9cabb671669568854210da5b3e29";
+    hash = "sha256-Xm98UPk26/oj6SQimvyV6yGfjI5agyAt1KORJEgD5AI=";
   };
 
-  propagatedBuildInputs = [ six ];
+  build-system = [
+    distutils
+    setuptools
+  ];
+
+  dependencies = [ six ];
 
   # No tests. Breaks when not disabling.
   doCheck = false;

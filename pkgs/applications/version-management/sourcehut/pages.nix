@@ -1,30 +1,53 @@
-{ lib
-, fetchFromSourcehut
-, buildGoModule
+{
+  lib,
+  fetchFromSourcehut,
+  buildGoModule,
+  unzip,
 }:
 
-buildGoModule rec {
-  pname = "pagessrht";
-  version = "0.5.2";
+buildGoModule (
+  rec {
+    pname = "pagessrht";
+    version = "0.15.7";
 
-  src = fetchFromSourcehut {
-    owner = "~sircmpwn";
-    repo = "pages.sr.ht";
-    rev = version;
-    sha256 = "sha256-yEM122uhF0MNkMlNXyvBSfkLogRQETeuBl2K66kivac=";
-  };
+    src = fetchFromSourcehut {
+      owner = "~sircmpwn";
+      repo = "pages.sr.ht";
+      rev = version;
+      hash = "sha256-Lobuf12ybSO7Y4ztOLMFW0dmPFaBSEPCy4Nmh89tylI=";
+    };
 
-  vendorSha256 = "sha256-udr+1y5ApQCSPhs3yQTTi9QfzRbz0A9COYuFMjQGa74=";
+    postPatch = ''
+      substituteInPlace Makefile \
+        --replace "all: server" ""
 
-  postInstall = ''
-    mkdir -p $out/share/sql/
-    cp -r -t $out/share/sql/ schema.sql migrations
-  '';
+      # fix build failure due to unused import
+      substituteInPlace server.go \
+        --replace-warn '	"fmt"' ""
+    '';
 
-  meta = with lib; {
-    homepage = "https://git.sr.ht/~sircmpwn/pages.sr.ht";
-    description = "Web hosting service for the sr.ht network";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ eadwu ];
-  };
-}
+    vendorHash = "sha256-9hpOkP6AYSZe7MW1mrwFEKq7TvVt6OcF6eHWY4jARuU=";
+
+    postInstall = ''
+      mkdir -p $out/share/sql/
+      cp -r -t $out/share/sql/ schema.sql migrations
+    '';
+
+    meta = with lib; {
+      homepage = "https://git.sr.ht/~sircmpwn/pages.sr.ht";
+      description = "Web hosting service for the sr.ht network";
+      mainProgram = "pages.sr.ht";
+      license = licenses.agpl3Only;
+      maintainers = with maintainers; [
+        eadwu
+        christoph-heiss
+      ];
+    };
+    # There is no ./loaders but this does not cause troubles
+    # to go generate
+  }
+  // import ./fix-gqlgen-trimpath.nix {
+    inherit unzip;
+    gqlgenVersion = "0.17.42";
+  }
+)

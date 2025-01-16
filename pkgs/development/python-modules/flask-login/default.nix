@@ -1,48 +1,55 @@
-{ lib
-, blinker
-, buildPythonPackage
-, fetchPypi
-, flask
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, semantic-version
-, werkzeug
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  flask,
+  werkzeug,
+
+  # tests
+  asgiref,
+  blinker,
+  pytestCheckHook,
+  semantic-version,
 }:
 
 buildPythonPackage rec {
   pname = "flask-login";
-  version = "0.5.0";
-  format = "setuptools";
+  version = "0.7.0dev0-2024-06-18";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.7";
 
-  src = fetchPypi {
-    pname = "Flask-Login";
-    inherit version;
-    sha256 = "6d33aef15b5bcead780acc339464aae8a6e28f13c90d8b1cf9de8b549d1c0b4b";
+  src = fetchFromGitHub {
+    owner = "maxcountryman";
+    repo = "flask-login";
+    rev = "30675c56b651389d47b47eeb1ad114decb35b8fc";
+    hash = "sha256-mIEYZnYWerjCetQuV2HRcmerMh2uLWNvHV7tfo5j4PU=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ flit-core ];
+
+  dependencies = [
     flask
     werkzeug
   ];
 
-  checkInputs = [
+  pythonImportsCheck = [ "flask_login" ];
+
+  nativeCheckInputs = [
+    asgiref
     blinker
     pytestCheckHook
     semantic-version
   ];
 
-  disabledTests = lib.optionals (pythonAtLeast "3.10") [
-    "test_hashable"
-  ];
-
-  pythonImportsCheck = [
-    "flask_login"
-  ];
-
   meta = with lib; {
+    changelog = "https://github.com/maxcountryman/flask-login/blob/${version}/CHANGES.md";
     description = "User session management for Flask";
     homepage = "https://github.com/maxcountryman/flask-login";
     license = licenses.mit;

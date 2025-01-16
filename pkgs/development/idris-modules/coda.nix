@@ -1,9 +1,10 @@
-{ build-idris-package
-, fetchFromGitHub
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  lib,
 }:
-build-idris-package  {
-  name = "coda";
+build-idris-package {
+  pname = "coda";
   version = "2018-01-25";
 
   ipkgName = "Coda";

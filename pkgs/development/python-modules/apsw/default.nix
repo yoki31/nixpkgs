@@ -1,60 +1,53 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, sqlite
-, isPyPy
-, pytestCheckHook
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  pytestCheckHook,
+  setuptools,
+  sqlite,
 }:
 
 buildPythonPackage rec {
   pname = "apsw";
-  version = "3.36.0-r1";
-  format = "setuptools";
+  version = "3.46.1.0";
+  pyproject = true;
 
-  disabled = isPyPy;
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "rogerbinns";
     repo = "apsw";
-    rev = version;
-    sha256 = "sha256-kQqJqDikvEC0+PNhQxSNTcjQc+RwvaOSGz9VL3FCetg=";
+    tag = version;
+    hash = "sha256-/MMCwdd2juFbv/lrYwuO2mdWm0+v+YFn6h9CwdQMTpg=";
   };
 
-  buildInputs = [
-    sqlite
-  ];
+  build-system = [ setuptools ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  buildInputs = [ sqlite ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pytestFlagsArray = [ "apsw/tests.py" ];
 
   disabledTests = [
-    "testCursor"
+    # we don't build the test extension
     "testLoadExtension"
     "testShell"
     "testVFS"
     "testVFSWithWAL"
-    "testdb"
-  ] ++ lib.optionals stdenv.isDarwin [
-    # This is https://github.com/rogerbinns/apsw/issues/277 but
-    # because we use pytestCheckHook we need to blacklist the test
-    # manually
-    "testzzForkChecker"
-  ];
+    # no lines in errout.txt
+    "testWriteUnraisable"
+  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ "testzzForkChecker" ];
 
-  pythonImportsCheck = [
-    "apsw"
-  ];
+  pythonImportsCheck = [ "apsw" ];
 
   meta = with lib; {
-    description = "A Python wrapper for the SQLite embedded relational database engine";
+    changelog = "https://github.com/rogerbinns/apsw/blob/${src.rev}/doc/changes.rst";
+    description = "Python wrapper for the SQLite embedded relational database engine";
     homepage = "https://github.com/rogerbinns/apsw";
     license = licenses.zlib;
-    maintainers = with maintainers; [ ];
+    maintainers = with maintainers; [ gador ];
   };
 }

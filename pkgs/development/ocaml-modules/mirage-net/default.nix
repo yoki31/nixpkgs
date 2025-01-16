@@ -1,19 +1,32 @@
-{ lib, fetchurl, buildDunePackage
-, cstruct, fmt, lwt, macaddr, mirage-device
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  cstruct,
+  fmt,
+  lwt,
+  macaddr,
+  mirage-device,
 }:
 
 buildDunePackage rec {
   pname = "mirage-net";
-  version = "3.0.1";
+  version = "4.0.0";
 
-  useDune2 = true;
+  duneVersion = "3";
 
   src = fetchurl {
     url = "https://github.com/mirage/mirage-net/releases/download/v${version}/mirage-net-v${version}.tbz";
-    sha256 = "0yfvl0fgs7xy5i7kkparaa7a315a2h7kb1z24fmmnwnyaji57dg3";
+    hash = "sha256-Zo7/0Ye4GgqzJFCHDBXbuJ/5ETl/8ziolRgH4lDhlM4=";
   };
 
-  propagatedBuildInputs = [ cstruct fmt lwt macaddr mirage-device ];
+  propagatedBuildInputs = [
+    cstruct
+    fmt
+    lwt
+    macaddr
+    mirage-device
+  ];
 
   meta = {
     description = "Network signatures for MirageOS";

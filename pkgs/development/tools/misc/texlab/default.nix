@@ -1,53 +1,63 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, installShellFiles
-, libiconv
-, Security
-, CoreServices
-, nix-update-script
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  help2man,
+  installShellFiles,
+  libiconv,
+  Security,
+  CoreServices,
+  nix-update-script,
 }:
 
+let
+  isCross = stdenv.hostPlatform != stdenv.buildPlatform;
+in
 rustPlatform.buildRustPackage rec {
   pname = "texlab";
-  version = "3.3.1";
+  version = "5.21.0";
 
   src = fetchFromGitHub {
     owner = "latex-lsp";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-HX1Mnzq+GsRnUsJERK5gPI5x4op885t+9Vn6vogSK1o=";
+    repo = "texlab";
+    tag = "v${version}";
+    hash = "sha256-Lx7vENYuBXaMvGDOZxAPqivGZVaCXYrihaTnBn9eTm4=";
   };
 
-  cargoSha256 = "sha256-AdzaLqwONI7WEcL8U0OGuyX/pg+BpZbJz9aaSClo47Q=";
+  cargoHash = "sha256-6JDG9Ac43AW6HV2baZH08uxdb84hjrGXgdzZiFr2Ybk=";
 
-  outputs = [ "out" "man" ];
+  outputs = [ "out" ] ++ lib.optional (!isCross) "man";
 
-  nativeBuildInputs = [ installShellFiles ];
+  nativeBuildInputs = [ installShellFiles ] ++ lib.optional (!isCross) help2man;
 
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv Security CoreServices ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+    libiconv
+    Security
+    CoreServices
+  ];
 
-  postInstall = ''
+  # When we cross compile we cannot run the output executable to
+  # generate the man page
+  postInstall = lib.optionalString (!isCross) ''
+    # TexLab builds man page separately in CI:
+    # https://github.com/latex-lsp/texlab/blob/v5.21.0/.github/workflows/publish.yml#L110-L114
+    help2man --no-info "$out/bin/texlab" > texlab.1
     installManPage texlab.1
-
-    # Remove generated dylib of html2md dependency. TexLab statically
-    # links to the generated rlib and doesn't reference the dylib. I
-    # couldn't find any way to prevent building this by passing cargo flags.
-    # See https://gitlab.com/Kanedias/html2md/-/blob/0.2.10/Cargo.toml#L20
-    rm "$out/lib/libhtml2md${stdenv.hostPlatform.extensions.sharedLibrary}"
-    rmdir "$out/lib"
   '';
 
-  passthru.updateScript = nix-update-script {
-    attrPath = pname;
-  };
+  passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
-    description = "An implementation of the Language Server Protocol for LaTeX";
-    homepage = "https://texlab.netlify.app";
+    description = "Implementation of the Language Server Protocol for LaTeX";
+    homepage = "https://github.com/latex-lsp/texlab";
+    changelog = "https://github.com/latex-lsp/texlab/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ doronbehar kira-bruneau ];
+    maintainers = with maintainers; [
+      doronbehar
+      kira-bruneau
+    ];
     platforms = platforms.all;
+    mainProgram = "texlab";
   };
 }

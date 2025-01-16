@@ -1,72 +1,75 @@
-{ lib
-, aioredis
-, async_generator
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, hypothesis
-, lupa
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, redis
-, six
-, sortedcontainers
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hypothesis,
+  jsonpath-ng,
+  lupa,
+  poetry-core,
+  pyprobables,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
+  pythonOlder,
+  redis,
+  redis-server,
+  sortedcontainers,
 }:
 
 buildPythonPackage rec {
   pname = "fakeredis";
-  version = "1.7.0";
-  format = "setuptools";
+  version = "2.26.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
-    owner = "jamesls";
-    repo = pname;
-    rev = version;
-    hash = "sha256-P6PUg9SY0Qshlvj+iV1xdrzVLJ9JXUV4cGHUynKO3m0=";
+    owner = "dsoftwareinc";
+    repo = "fakeredis-py";
+    tag = "v${version}";
+    hash = "sha256-jD0e04ltH1MjExfrPsR6LUn4X0/qoJZWzX9i2A58HHI=";
   };
 
-  propagatedBuildInputs = [
-    aioredis
-    lupa
+  build-system = [ poetry-core ];
+
+  dependencies = [
     redis
-    six
     sortedcontainers
   ];
 
-  checkInputs = [
-    async_generator
+  optional-dependencies = {
+    lua = [ lupa ];
+    json = [ jsonpath-ng ];
+    bf = [ pyprobables ];
+    cf = [ pyprobables ];
+    probabilistic = [ pyprobables ];
+  };
+
+  nativeCheckInputs = [
     hypothesis
     pytest-asyncio
     pytest-mock
     pytestCheckHook
   ];
 
-  patches = [
-    # Support for redis <= 4.1.0, https://github.com/jamesls/fakeredis/pull/324
-    (fetchpatch {
-      name = "support-redis-4.1.0.patch";
-      url = "https://github.com/jamesls/fakeredis/commit/8ef8dc6dacc9baf571d66a25ffbf0fadd7c70f78.patch";
-      sha256 = "sha256-4DrF/5WEWQWlJZtAi4qobMDyRAAcO/weHIaK9waN00k=";
-    })
-  ];
+  pythonImportsCheck = [ "fakeredis" ];
 
-  disabledTestPaths = [
-    # AttributeError: 'AsyncGenerator' object has no attribute XXXX
-    "test/test_aioredis2.py"
-  ];
+  pytestFlagsArray = [ "-m 'not slow'" ];
 
-  pythonImportsCheck = [
-    "fakeredis"
-  ];
+  preCheck = ''
+    ${lib.getExe' redis-server "redis-server"} --port 6390 &
+    REDIS_PID=$!
+  '';
+
+  postCheck = ''
+    kill $REDIS_PID
+  '';
 
   meta = with lib; {
     description = "Fake implementation of Redis API";
-    homepage = "https://github.com/jamesls/fakeredis";
-    license = with licenses; [ mit ];
+    homepage = "https://github.com/dsoftwareinc/fakeredis-py";
+    changelog = "https://github.com/cunla/fakeredis-py/releases/tag/v${version}";
+    license = with licenses; [ bsd3 ];
     maintainers = with maintainers; [ fab ];
   };
 }

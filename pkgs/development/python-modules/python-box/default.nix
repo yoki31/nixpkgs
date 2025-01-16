@@ -1,42 +1,60 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, msgpack
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, ruamel-yaml
-, toml
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  msgpack,
+  pytestCheckHook,
+  pythonOlder,
+  pyyaml,
+  ruamel-yaml,
+  setuptools,
+  toml,
+  tomli,
+  tomli-w,
 }:
 
 buildPythonPackage rec {
   pname = "python-box";
-  version = "5.4.1";
-  disabled = pythonOlder "3.6";
+  version = "7.3.1";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "cdgriffith";
     repo = "Box";
-    rev = version;
-    sha256 = "sha256-SkteajcWG7rBFMm6Xp6QCfkZfwthRituGL/RtICbtYk=";
+    tag = version;
+    hash = "sha256-id1gLT26jETRQ0fyVNTIhSZqM+fDmpaVbB56GxPhYr8=";
   };
 
-  propagatedBuildInputs = [
-    msgpack
-    pyyaml
-    ruamel-yaml
-    toml
+  build-system = [
+    cython
+    setuptools
   ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  optional-dependencies = {
+    all = [
+      msgpack
+      ruamel-yaml
+      toml
+    ];
+    yaml = [ ruamel-yaml ];
+    ruamel-yaml = [ ruamel-yaml ];
+    PyYAML = [ pyyaml ];
+    tomli = [ tomli-w ] ++ lib.optionals (pythonOlder "3.11") [ tomli ];
+    toml = [ toml ];
+    msgpack = [ msgpack ];
+  };
+
+  nativeCheckInputs = [ pytestCheckHook ] ++ optional-dependencies.all;
 
   pythonImportsCheck = [ "box" ];
 
   meta = with lib; {
     description = "Python dictionaries with advanced dot notation access";
     homepage = "https://github.com/cdgriffith/Box";
+    changelog = "https://github.com/cdgriffith/Box/blob/${version}/CHANGES.rst";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

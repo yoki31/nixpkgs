@@ -1,33 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, aiohttp
-, async-timeout
-, lxml
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  aiohttp,
+  aiozoneinfo,
+  lxml,
+  pythonOlder,
+  poetry-core,
 }:
 
 buildPythonPackage rec {
   pname = "pytrafikverket";
-  version = "0.1.6.2";
+  version = "1.1.1";
+  pyproject = true;
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0hrjsw53ixgmhsiszdrzzh0wma705nrhq8npzacsyaf43r29zvqy";
+    hash = "sha256-yfo36fAVC2LaresQ1QcXq2EGhGtkVzNbWvD6lynhusQ=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     aiohttp
-    async-timeout
+    aiozoneinfo
     lxml
   ];
 
   # Project has no tests
   doCheck = false;
+
   pythonImportsCheck = [ "pytrafikverket" ];
 
   meta = with lib; {
-    description = "Python library to manage Etekcity Devices and Levoit Air Purifier";
-    homepage = "https://github.com/endor-force/pytrafikverket";
+    description = "Library to get data from the Swedish Transport Administration (Trafikverket) API";
+    homepage = "https://github.com/gjohansson-ST/pytrafikverket";
+    changelog = "https://github.com/gjohansson-ST/pytrafikverket/releases/tag/v${version}";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

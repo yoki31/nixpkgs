@@ -1,46 +1,75 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, isPy27
-, future
-, pytestCheckHook
-, pytorch
-, pyyaml
-, tensorflow-tensorboard
-, tqdm }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  fsspec,
+  lightning-utilities,
+  numpy,
+  packaging,
+  pyyaml,
+  tensorboardx,
+  torch,
+  torchmetrics,
+  tqdm,
+  traitlets,
+
+  # tests
+  psutil,
+  pytestCheckHook,
+}:
 
 buildPythonPackage rec {
   pname = "pytorch-lightning";
-  version = "0.8.5";
-
-  disabled = isPy27;
+  version = "2.5.0.post0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "PyTorchLightning";
-    repo = pname;
-    rev = version;
-    sha256 = "12zhq4pnfcwbgcx7cs99c751gp3w0ysaf5ykv2lv8f4i360w3r5a";
+    owner = "Lightning-AI";
+    repo = "pytorch-lightning";
+    tag = version;
+    hash = "sha256-TkwDncyfv1VoV/IErUgF4p0Or5PJbwKoABqo1xXGLVg=";
   };
 
-  propagatedBuildInputs = [
-    future
-    pytorch
+  preConfigure = ''
+    export PACKAGE_NAME=pytorch
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    fsspec
+    lightning-utilities
+    numpy
+    packaging
     pyyaml
-    tensorflow-tensorboard
+    tensorboardx
+    torch
+    torchmetrics
     tqdm
+    traitlets
+  ] ++ fsspec.optional-dependencies.http;
+
+  nativeCheckInputs = [
+    psutil
+    pytestCheckHook
   ];
 
-  checkInputs = [ pytestCheckHook ];
   # Some packages are not in NixPkgs; other tests try to build distributed
   # models, which doesn't work in the sandbox.
   doCheck = false;
 
   pythonImportsCheck = [ "pytorch_lightning" ];
 
-  meta = with lib; {
+  meta = {
     description = "Lightweight PyTorch wrapper for machine learning researchers";
-    homepage = "https://pytorch-lightning.readthedocs.io";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ tbenst ];
+    homepage = "https://github.com/Lightning-AI/pytorch-lightning";
+    changelog = "https://github.com/Lightning-AI/pytorch-lightning/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ tbenst ];
   };
 }

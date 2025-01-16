@@ -1,28 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPy27
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "httptools";
-  version = "0.3.0";
-  disabled = isPy27;
+  version = "0.6.4";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "3f9b4856d46ba1f0c850f4e84b264a9a8b4460acb20e865ec00978ad9fbaa4cf";
+    hash = "sha256-TpPu5K3WSTtZpcUU2pjJObJE/OSg2Iec0/RmVi9LfVw=";
   };
 
-  # tests are not included in pypi tarball
+  # Tests are not included in pypi tarball
   doCheck = false;
 
   pythonImportsCheck = [ "httptools" ];
 
   meta = with lib; {
-    description = "A collection of framework independent HTTP protocol utils";
+    description = "Collection of framework independent HTTP protocol utils";
     homepage = "https://github.com/MagicStack/httptools";
+    changelog = "https://github.com/MagicStack/httptools/releases/tag/v${version}";
     license = licenses.mit;
-    maintainers = [ maintainers.costrouc ];
+    maintainers = [ ];
   };
 }

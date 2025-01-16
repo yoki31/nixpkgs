@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, hezarfen
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  hezarfen,
+  lib,
 }:
-build-idris-package  {
-  name = "composition";
+build-idris-package {
+  pname = "composition";
   version = "2017-11-12";
 
   idrisDeps = [ hezarfen ];

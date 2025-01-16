@@ -1,23 +1,80 @@
-{ lib, buildPythonPackage, fetchFromGitHub, django, isPy27 }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  django,
+  pytz,
+
+  # optional-dependencies
+  coreapi,
+  coreschema,
+  django-guardian,
+  inflection,
+  psycopg2,
+  pygments,
+  pyyaml,
+
+  # tests
+  pytestCheckHook,
+  pytest-django,
+}:
 
 buildPythonPackage rec {
-  version = "3.12.4";
   pname = "djangorestframework";
-  disabled = isPy27;
+  version = "3.15.2";
+  pyproject = true;
+  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "encode";
     repo = "django-rest-framework";
     rev = version;
-    sha256 = "sha256-FjMRfVyLmm5J9uOUTLZpO3Pvge3RoYnqIRvzMng7wZo=";
+    hash = "sha256-ne0sk4m11Ha77tNmCsdhj7QVmCkYj5GjLn/dLF4qxU8=";
   };
 
-  # Test settings are missing
-  doCheck = false;
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [ django ];
+  dependencies = [
+    django
+    pygments
+  ] ++ (lib.optional (lib.versionOlder django.version "5.0.0") pytz);
+
+  optional-dependencies = {
+    complete =
+      [
+        coreschema
+        django-guardian
+        inflection
+        psycopg2
+        pygments
+        pyyaml
+      ]
+      ++ lib.optionals (pythonOlder "3.13") [
+        # broken on 3.13
+        coreapi
+      ];
+  };
+
+  nativeCheckInputs = [
+    pytest-django
+    pytestCheckHook
+  ] ++ optional-dependencies.complete;
+
+  disabledTests = [
+    # https://github.com/encode/django-rest-framework/issues/9422
+    "test_urlpatterns"
+  ];
+
+  pythonImportsCheck = [ "rest_framework" ];
 
   meta = with lib; {
+    changelog = "https://github.com/encode/django-rest-framework/releases/tag/3.15.1";
     description = "Web APIs for Django, made easy";
     homepage = "https://www.django-rest-framework.org/";
     maintainers = with maintainers; [ desiderius ];

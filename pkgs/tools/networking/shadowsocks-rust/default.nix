@@ -1,37 +1,57 @@
-{ lib, stdenv, fetchFromGitHub, rustPlatform, CoreServices, libiconv }:
+{ lib, stdenv, fetchFromGitHub, rustPlatform, pkg-config, openssl, Security, CoreServices }:
 
 rustPlatform.buildRustPackage rec {
   pname = "shadowsocks-rust";
-  version = "1.13.0";
+  version = "1.21.2";
 
   src = fetchFromGitHub {
     rev = "v${version}";
     owner = "shadowsocks";
     repo = pname;
-    sha256 = "sha256-owEUj79IcZAxK0JLoyQI/DDCaaNSYHyD695Xk7hvJxE=";
+    hash = "sha256-bvYp25EPKtkuZzplVYK4Cwd0mm4UuyN1LMiDAkgMIAc=";
   };
 
-  cargoSha256 = "sha256-Akxe8w+w3JSO6yeCW/C/+/Wjl7Jl0GXYucjLis27V9Q=";
+  cargoHash = "sha256-zmyce0Dt9ai4pNQi+b37KrCDqdjT9tQ8k2yHLDWDTXY=";
 
-  RUSTC_BOOTSTRAP = 1;
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ pkg-config ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [ CoreServices libiconv ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ openssl ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [ Security CoreServices ];
+
+  buildFeatures = [
+    "trust-dns"
+    "local-http-native-tls"
+    "local-tunnel"
+    "local-socks4"
+    "local-redir"
+    "local-dns"
+    "local-tun"
+    "aead-cipher-extra"
+    "aead-cipher-2022"
+    "aead-cipher-2022-extra"
+  ];
 
   # all of these rely on connecting to www.example.com:80
   checkFlags = [
     "--skip=http_proxy"
     "--skip=tcp_tunnel"
+    "--skip=tcprelay"
     "--skip=udp_tunnel"
     "--skip=udp_relay"
     "--skip=socks4_relay_connect"
     "--skip=socks5_relay_aead"
     "--skip=socks5_relay_stream"
+    "--skip=trust_dns_resolver"
   ];
 
+  # timeouts in sandbox
+  doCheck = false;
+
   meta = with lib; {
+    description = "Rust port of Shadowsocks";
     homepage = "https://github.com/shadowsocks/shadowsocks-rust";
-    description = "A Rust port of shadowsocks";
+    changelog = "https://github.com/shadowsocks/shadowsocks-rust/raw/v${version}/debian/changelog";
     license = licenses.mit;
-    maintainers = [ maintainers.marsam ];
+    maintainers = [ ];
   };
 }

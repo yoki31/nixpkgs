@@ -5,19 +5,15 @@
 , substituteAll
 , meson
 , ninja
-, python3
 , pkg-config
 , vala
 , granite
 , libgee
 , gettext
 , gtk3
-, gnome-menus
 , json-glib
-, elementary-dock
-, bamf
 , switchboard-with-plugs
-, libsoup
+, libsoup_2_4
 , wingpanel
 , zeitgeist
 , bc
@@ -26,13 +22,13 @@
 
 stdenv.mkDerivation rec {
   pname = "wingpanel-applications-menu";
-  version = "2.10.2";
+  version = "8.0.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "applications-menu";
     rev = version;
-    sha256 = "sha256-xBuMJzIFOueSvNwvXc85AI9NHuMW3bOblNsyuDkIzyk=";
+    sha256 = "sha256-HA82CcVC2+hJFksOuZ8pFmw7phpkCEjPCgE/5naaPcg=";
   };
 
   patches = [
@@ -47,19 +43,16 @@ stdenv.mkDerivation rec {
     meson
     ninja
     pkg-config
-    python3
     vala
   ];
 
   buildInputs = [
-    bamf
-    elementary-dock
     granite
     gtk3
     json-glib
     libgee
     libhandy
-    libsoup
+    libsoup_2_4
     switchboard-with-plugs
     wingpanel
     zeitgeist
@@ -75,15 +68,10 @@ stdenv.mkDerivation rec {
     "--sysconfdir=${placeholder "out"}/etc"
   ];
 
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
-  '';
+  doCheck = true;
 
   passthru = {
-    updateScript = nix-update-script {
-      attrPath = "pantheon.${pname}";
-    };
+    updateScript = nix-update-script { };
   };
 
   meta = with lib; {

@@ -1,10 +1,11 @@
-{ build-idris-package
-, fetchFromGitHub
-, contrib
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  contrib,
+  lib,
 }:
-build-idris-package  {
-  name = "http4idris";
+build-idris-package {
+  pname = "http4idris";
   version = "2018-01-16";
 
   idrisDeps = [ contrib ];
@@ -17,7 +18,7 @@ build-idris-package  {
   };
 
   meta = {
-    description = "An experimental HTTP framework for Idris";
+    description = "Experimental HTTP framework for Idris";
     homepage = "https://github.com/A1kmm/http4idris";
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.brainrape ];

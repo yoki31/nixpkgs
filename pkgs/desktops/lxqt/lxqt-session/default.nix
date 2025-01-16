@@ -1,60 +1,68 @@
-{ lib
-, mkDerivation
-, fetchFromGitHub
-, cmake
-, pkg-config
-, lxqt-build-tools
-, qtbase
-, qttools
-, qtsvg
-, qtx11extras
-, kwindowsystem
-, liblxqt
-, libqtxdg
-, procps
-, xorg
-, xdg-user-dirs
-, lxqtUpdateScript
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  kwindowsystem,
+  layer-shell-qt,
+  libXdmcp,
+  liblxqt,
+  libpthreadstubs,
+  libqtxdg,
+  lxqt-build-tools,
+  pkg-config,
+  procps,
+  qtbase,
+  qtsvg,
+  qttools,
+  qtwayland,
+  qtxdg-tools,
+  wrapQtAppsHook,
+  xdg-user-dirs,
+  gitUpdater,
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "lxqt-session";
-  version = "1.0.1";
+  version = "2.1.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
     repo = pname;
     rev = version;
-    sha256 = "6/HTCngjz0GpNAYf66CUiCZtEs5EsBbjDjcObIe3qSk=";
+    hash = "sha256-t3odaG9znMohROutoEquJ7JYsvPQPjPxOik+WD8WGSA=";
   };
 
   nativeBuildInputs = [
     cmake
     pkg-config
     lxqt-build-tools
+    qttools
+    wrapQtAppsHook
   ];
 
   buildInputs = [
-    qtbase
-    qttools
-    qtsvg
-    qtx11extras
     kwindowsystem
+    layer-shell-qt
+    libXdmcp
     liblxqt
+    libpthreadstubs
     libqtxdg
     procps
-    xorg.libpthreadstubs
-    xorg.libXdmcp
+    qtbase
+    qtsvg
+    qtwayland
+    qtxdg-tools
     xdg-user-dirs
   ];
 
-  passthru.updateScript = lxqtUpdateScript { inherit pname version src; };
+  passthru.updateScript = gitUpdater { };
 
   meta = with lib; {
     homepage = "https://github.com/lxqt/lxqt-session";
-    description = "An alternative session manager ported from the original razor-session";
+    description = "Alternative session manager ported from the original razor-session";
     license = licenses.lgpl21Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ romildo ];
+    maintainers = teams.lxqt.members;
   };
 }

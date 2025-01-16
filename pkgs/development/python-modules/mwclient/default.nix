@@ -1,30 +1,50 @@
-{ lib, buildPythonPackage, fetchFromGitHub
-, requests, requests_oauthlib, six
-, pytest, pytestcache, pytest-cov, responses, mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mock,
+  pytest-cov-stub,
+  pytestCheckHook,
+  pythonOlder,
+  requests,
+  requests-oauthlib,
+  responses,
+  six,
 }:
 
 buildPythonPackage rec {
-  version = "0.10.1";
+  version = "0.11.0";
   pname = "mwclient";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "mwclient";
     repo = "mwclient";
-    rev = "v${version}";
-    sha256 = "120snnsh9n5svfwkyj1w9jrxf99jnqm0jk282yypd3lpyca1l9hj";
+    tag = "v${version}";
+    sha256 = "sha256-qnWVQEG1Ri0z4RYmmG/fxYrlIFFf/6PnP5Dnv0cZb5I=";
   };
 
-  checkInputs = [ pytest pytestcache pytest-cov responses mock ];
+  propagatedBuildInputs = [
+    requests
+    requests-oauthlib
+    six
+  ];
 
-  propagatedBuildInputs = [ requests requests_oauthlib six ];
+  nativeCheckInputs = [
+    mock
+    pytest-cov-stub
+    pytestCheckHook
+    responses
+  ];
 
-  checkPhase = ''
-    py.test
-  '';
+  pythonImportsCheck = [ "mwclient" ];
 
   meta = with lib; {
     description = "Python client library to the MediaWiki API";
     license = licenses.mit;
     homepage = "https://github.com/mwclient/mwclient";
+    maintainers = [ ];
   };
 }

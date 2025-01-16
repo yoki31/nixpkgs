@@ -1,19 +1,73 @@
-{ buildPythonPackage
-, fetchPypi
-, pytest
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatch-vcs,
+  hatchling,
+  paramiko,
+  psutil,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-timeout,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "plumbum";
-  version = "1.7.2";
+  version = "1.9.0";
+  pyproject = true;
 
-  checkInputs = [ pytest ];
+  disabled = pythonOlder "3.10";
 
-  # No tests in archive
-  doCheck = false;
+  src = fetchFromGitHub {
+    owner = "tomerfiliba";
+    repo = "plumbum";
+    tag = "v${version}";
+    hash = "sha256-3PAvSjZ0+BMq+/g4qNNZl27KnAm01fWFYxBBY+feNTU=";
+  };
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "0d1bf908076bbd0484d16412479cb97d6843069ee19f99e267e11dd980040523";
+  build-system = [
+    hatchling
+    hatch-vcs
+  ];
+
+  optional-dependencies = {
+    ssh = [ paramiko ];
+  };
+
+  nativeCheckInputs = [
+    psutil
+    pytest-cov-stub
+    pytest-mock
+    pytest-timeout
+    pytestCheckHook
+  ] ++ lib.flatten (builtins.attrValues optional-dependencies);
+
+  preCheck = ''
+    export HOME=$TMP
+  '';
+
+  disabledTests = [
+    # broken in nix env
+    "test_change_env"
+    "test_dictlike"
+    "test_local"
+    # incompatible with pytest 7
+    "test_incorrect_login"
+  ];
+
+  disabledTestPaths = [
+    # incompatible with pytest7
+    # https://github.com/tomerfiliba/plumbum/issues/594
+    "tests/test_remote.py"
+  ];
+
+  meta = with lib; {
+    description = "Module Shell Combinators";
+    changelog = "https://github.com/tomerfiliba/plumbum/releases/tag/v${version}";
+    homepage = " https://github.com/tomerfiliba/plumbum";
+    license = licenses.mit;
+    maintainers = [ ];
   };
 }

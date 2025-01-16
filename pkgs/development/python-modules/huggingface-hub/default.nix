@@ -1,48 +1,56 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, filelock
-, importlib-metadata
-, packaging
-, pyyaml
-, requests
-, ruamel-yaml
-, tqdm
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  filelock,
+  fsspec,
+  packaging,
+  pyyaml,
+  requests,
+  tqdm,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "huggingface-hub";
-  version = "0.1.2";
+  version = "0.27.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "huggingface";
     repo = "huggingface_hub";
-    rev = "v${version}";
-    sha256 = "1pmi76vinwwn0bcxy5hj8pxhzqxdbzp0y3hsd631yyys01s0n6xd";
+    tag = "v${version}";
+    hash = "sha256-7cfu+qBro6u7bcRTTWHq+AemHqW7yb702owGoE5iTVg=";
   };
 
-  nativeBuildInputs = [ packaging ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     filelock
+    fsspec
+    packaging
     pyyaml
     requests
-    ruamel-yaml
     tqdm
     typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.8") [ importlib-metadata ];
+  ];
 
   # Tests require network access.
   doCheck = false;
+
   pythonImportsCheck = [ "huggingface_hub" ];
 
-   meta = with lib; {
-    homepage = "https://github.com/huggingface/huggingface_hub";
+  meta = {
     description = "Download and publish models and other files on the huggingface.co hub";
-    changelog = "https://github.com/huggingface/huggingface_hub/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    mainProgram = "huggingface-cli";
+    homepage = "https://github.com/huggingface/huggingface_hub";
+    changelog = "https://github.com/huggingface/huggingface_hub/releases/tag/v${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
 }

@@ -1,49 +1,78 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, CommonMark
-, colorama
-, dataclasses
-, poetry-core
-, pygments
-, typing-extensions
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+
+  # build-system
+  poetry-core,
+
+  # dependencies
+  markdown-it-py,
+  pygments,
+  typing-extensions,
+
+  # optional-dependencies
+  ipywidgets,
+
+  # tests
+  attrs,
+  pytestCheckHook,
+  which,
+
+  # for passthru.tests
+  enrich,
+  httpie,
+  rich-rst,
+  textual,
 }:
 
 buildPythonPackage rec {
   pname = "rich";
-  version = "11.0.0";
-  format = "pyproject";
-  disabled = pythonOlder "3.6";
+  version = "13.9.4";
+  pyproject = true;
+
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
-    owner = "willmcgugan";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "0vkwar22rv1j6a3kqj3c016j0vnnha0kwi79fkd90ib1n501m7rn";
+    owner = "Textualize";
+    repo = "rich";
+    tag = "v${version}";
+    hash = "sha256-Zaop9zR+Sz9lMQjQP1ddJSid5jEmf0tQYuTeLuWNGA8=";
   };
 
-  nativeBuildInputs = [ poetry-core ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    CommonMark
-    colorama
+  dependencies = [
+    markdown-it-py
     pygments
-    typing-extensions
-  ] ++ lib.optional (pythonOlder "3.7") [
-    dataclasses
-  ];
+  ] ++ lib.optionals (pythonOlder "3.11") [ typing-extensions ];
 
-  checkInputs = [
+  optional-dependencies = {
+    jupyter = [ ipywidgets ];
+  };
+
+  nativeCheckInputs = [
+    attrs
     pytestCheckHook
+    which
   ];
 
   pythonImportsCheck = [ "rich" ];
 
+  passthru.tests = {
+    inherit
+      enrich
+      httpie
+      rich-rst
+      textual
+      ;
+  };
+
   meta = with lib; {
     description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal";
-    homepage = "https://github.com/willmcgugan/rich";
+    homepage = "https://github.com/Textualize/rich";
+    changelog = "https://github.com/Textualize/rich/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
     maintainers = with maintainers; [ ris ];
   };

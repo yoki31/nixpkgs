@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 
@@ -10,25 +15,22 @@ let
     src = ./stage-2-init.sh;
     shellDebug = "${pkgs.bashInteractive}/bin/bash";
     shell = "${pkgs.bash}/bin/bash";
-    inherit (config.boot) systemdExecutable extraSystemdUnitPaths;
+    inherit (config.boot) readOnlyNixStore systemdExecutable extraSystemdUnitPaths;
+    inherit (config.system.nixos) distroName;
     isExecutable = true;
-    inherit (config.nix) readOnlyStore;
     inherit useHostResolvConf;
     inherit (config.system.build) earlyMountScript;
-    path = lib.makeBinPath ([
-      pkgs.coreutils
-      pkgs.util-linux
-    ] ++ lib.optional useHostResolvConf pkgs.openresolv);
-    fsPackagesPath = lib.makeBinPath config.system.fsPackages;
-    systemdUnitPathEnvVar = lib.optionalString (config.boot.extraSystemdUnitPaths != [])
-      ("SYSTEMD_UNIT_PATH="
-      + builtins.concatStringsSep ":" config.boot.extraSystemdUnitPaths
-      + ":"); # If SYSTEMD_UNIT_PATH ends with an empty component (":"), the usual unit load path will be appended to the contents of the variable
-    postBootCommands = pkgs.writeText "local-cmds"
-      ''
-        ${config.boot.postBootCommands}
-        ${config.powerManagement.powerUpCommands}
-      '';
+    path = lib.makeBinPath (
+      [
+        pkgs.coreutils
+        pkgs.util-linux
+      ]
+      ++ lib.optional useHostResolvConf pkgs.openresolv
+    );
+    postBootCommands = pkgs.writeText "local-cmds" ''
+      ${config.boot.postBootCommands}
+      ${config.powerManagement.powerUpCommands}
+    '';
   };
 
 in
@@ -47,48 +49,27 @@ in
         '';
       };
 
-      devSize = mkOption {
-        default = "5%";
-        example = "32m";
-        type = types.str;
+      readOnlyNixStore = mkOption {
+        type = types.bool;
+        default = true;
         description = ''
-          Size limit for the /dev tmpfs. Look at mount(8), tmpfs size option,
-          for the accepted syntax.
-        '';
-      };
-
-      devShmSize = mkOption {
-        default = "50%";
-        example = "256m";
-        type = types.str;
-        description = ''
-          Size limit for the /dev/shm tmpfs. Look at mount(8), tmpfs size option,
-          for the accepted syntax.
-        '';
-      };
-
-      runSize = mkOption {
-        default = "25%";
-        example = "256m";
-        type = types.str;
-        description = ''
-          Size limit for the /run tmpfs. Look at mount(8), tmpfs size option,
-          for the accepted syntax.
+          If set, NixOS will enforce the immutability of the Nix store
+          by making {file}`/nix/store` a read-only bind
+          mount.  Nix will automatically make the store writable when
+          needed.
         '';
       };
 
       systemdExecutable = mkOption {
-        default = "systemd";
+        default = "/run/current-system/systemd/lib/systemd/systemd";
         type = types.str;
         description = ''
-          The program to execute to start systemd. Typically
-          <literal>systemd</literal>, which will find systemd in the
-          PATH.
+          The program to execute to start systemd.
         '';
       };
 
       extraSystemdUnitPaths = mkOption {
-        default = [];
+        default = [ ];
         type = types.listOf types.str;
         description = ''
           Additional paths that get appended to the SYSTEMD_UNIT_PATH environment variable
@@ -98,7 +79,6 @@ in
     };
 
   };
-
 
   config = {
 

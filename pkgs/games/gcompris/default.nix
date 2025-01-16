@@ -1,55 +1,74 @@
-{ mkDerivation
+{ stdenv
 , cmake
 , fetchurl
 , gettext
 , gst_all_1
 , lib
 , ninja
+, wrapQtAppsHook
 , qmlbox2d
 , qtbase
+, qtcharts
 , qtdeclarative
 , qtgraphicaleffects
+, qtimageformats
 , qtmultimedia
-, qtquickcontrols
+, qtquickcontrols2
 , qtsensors
 , qttools
 , qtxmlpatterns
+, extra-cmake-modules
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "gcompris";
-  version = "2.0";
+  version = "4.3";
 
   src = fetchurl {
-    url = "http://gcompris.net/download/qt/src/gcompris-qt-${version}.tar.xz";
-    sha256 = "sha256-mrVGYI9IPyXqlXZN2MEDGTjIPUmlLwfaAo+zW4HjqMc=";
+    url = "mirror://kde/stable/gcompris/qt/src/gcompris-qt-${finalAttrs.version}.tar.xz";
+    hash = "sha256-x+oTh0Nu7MnCnKGR2vkALDclG59576u/+HPdftsDtcc=";
   };
 
   cmakeFlags = [
-    "-DQML_BOX2D_LIBRARY=${qmlbox2d}/${qtbase.qtQmlPrefix}/Box2D.2.0"
+    (lib.cmakeFeature "QML_BOX2D_LIBRARY" "${qmlbox2d}/${qtbase.qtQmlPrefix}/Box2D.2.1")
+    (lib.cmakeBool "BUILD_TESTING" finalAttrs.finalPackage.doCheck)
   ];
 
-  nativeBuildInputs = [ cmake gettext ninja qttools ];
+  nativeBuildInputs = [ cmake extra-cmake-modules gettext ninja qttools wrapQtAppsHook ];
 
   buildInputs = [
-    qmlbox2d qtbase qtdeclarative qtgraphicaleffects qtmultimedia qtquickcontrols qtsensors qtxmlpatterns
+    qmlbox2d
+    qtbase
+    qtcharts
+    qtdeclarative
+    qtgraphicaleffects
+    qtimageformats
+    qtmultimedia
+    qtquickcontrols2
+    qtsensors
+    qtxmlpatterns
   ] ++ (with gst_all_1; [
-    gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad
+    gstreamer
+    gst-plugins-base
+    gst-plugins-good
+    gst-plugins-bad
   ]);
 
   postInstall = ''
-    install -Dm444 ../org.kde.gcompris.desktop        $out/share/applications/gcompris.desktop
-    install -Dm444 ../images/256-apps-gcompris-qt.png $out/share/icons/hicolor/256x256/apps/gcompris-qt.png
     install -Dm444 ../org.kde.gcompris.appdata.xml -t $out/share/metainfo
 
     qtWrapperArgs+=(--prefix GST_PLUGIN_SYSTEM_PATH_1_0 : "$GST_PLUGIN_SYSTEM_PATH_1_0")
   '';
 
+  # we need a graphical environment for the tests
+  doCheck = false;
+
   meta = with lib; {
-    description = "A high quality educational software suite, including a large number of activities for children aged 2 to 10";
+    description = "High quality educational software suite, including a large number of activities for children aged 2 to 10";
     homepage = "https://gcompris.net/";
     license = licenses.gpl3Plus;
+    mainProgram = "gcompris-qt";
     maintainers = with maintainers; [ guibou ];
     platforms = platforms.linux;
   };
-}
+})

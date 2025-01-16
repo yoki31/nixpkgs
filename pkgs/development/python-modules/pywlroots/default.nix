@@ -1,46 +1,64 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, python
-, cffi
-, pkg-config
-, libxkbcommon
-, libinput
-, pixman
-, udev
-, wlroots
-, wayland
-, pywayland
-, xkbcommon
-, xorg
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  python,
+  cffi,
+  pkg-config,
+  libxkbcommon,
+  libinput,
+  pixman,
+  pythonOlder,
+  udev,
+  wlroots,
+  wayland,
+  pywayland,
+  xkbcommon,
+  xorg,
+  pytestCheckHook,
+  qtile,
 }:
 
 buildPythonPackage rec {
   pname = "pywlroots";
-  version = "0.15.7";
+  version = "0.17.0";
+  format = "setuptools";
+
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "EJAqtzFKx9Zripspv3lXIDj54pqHV0in6RrOCgFUyU8=";
+    hash = "sha256-cssr4UBIwMvInM8bV4YwE6mXf9USSMMAzMcgAefEPbs=";
   };
-
-  # The XWayland detection uses some hard-coded FHS paths. Since we
-  # know wlroots was built with xwayland support, replace its
-  # detection with `return True`.
-  patches = [ ./xwayland.patch ];
 
   nativeBuildInputs = [ pkg-config ];
   propagatedNativeBuildInputs = [ cffi ];
-  buildInputs = [ libinput libxkbcommon pixman xorg.libxcb udev wayland wlroots ];
-  propagatedBuildInputs = [ cffi pywayland xkbcommon ];
-  checkInputs = [ pytestCheckHook ];
+  buildInputs = [
+    libinput
+    libxkbcommon
+    pixman
+    xorg.libxcb
+    xorg.xcbutilwm
+    udev
+    wayland
+    wlroots
+  ];
+  propagatedBuildInputs = [
+    cffi
+    pywayland
+    xkbcommon
+  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   postBuild = ''
-    ${python.interpreter} wlroots/ffi_build.py
+    ${python.pythonOnBuildForHost.interpreter} wlroots/ffi_build.py
   '';
 
   pythonImportsCheck = [ "wlroots" ];
+
+  passthru.tests = {
+    inherit qtile;
+  };
 
   meta = with lib; {
     homepage = "https://github.com/flacjacket/pywlroots";

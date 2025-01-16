@@ -1,15 +1,19 @@
-{ build-idris-package
-, fetchFromGitHub
-, contrib
-, jheiling-extras
-, lib
+{
+  build-idris-package,
+  fetchFromGitHub,
+  contrib,
+  jheiling-extras,
+  lib,
 }:
-build-idris-package  {
-  name = "jheiling-js";
+build-idris-package {
+  pname = "jheiling-js";
   version = "2016-03-09";
 
   ipkgName = "js";
-  idrisDeps = [ contrib jheiling-extras ];
+  idrisDeps = [
+    contrib
+    jheiling-extras
+  ];
 
   src = fetchFromGitHub {
     owner = "jheiling";

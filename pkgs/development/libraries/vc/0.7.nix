@@ -1,4 +1,9 @@
-{ lib, stdenv, fetchFromGitHub, cmake }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+}:
 
 stdenv.mkDerivation rec {
   pname = "Vc";
@@ -27,5 +32,9 @@ stdenv.mkDerivation rec {
     license = licenses.bsd3;
     platforms = platforms.all;
     maintainers = with maintainers; [ abbradar ];
+    # never built on aarch64-darwin since first introduction in nixpkgs
+    broken =
+      (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64)
+      || (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64);
   };
 }

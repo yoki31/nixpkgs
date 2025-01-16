@@ -1,38 +1,58 @@
-{ lib, buildPythonPackage, fetchFromGitHub, python,
-  django, django_compat, django_nose
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  nix-update-script,
+
+  # build-system
+  flit-gettext,
+  flit-scm,
+
+  # dependencies
+  django,
+
+  # tests
+  pytest-cov-stub,
+  pytest-django,
+  pytestCheckHook,
 }:
+
 buildPythonPackage rec {
   pname = "django-hijack";
-  version = "2.1.10";
+  version = "3.7.1";
+  pyproject = true;
 
-  # the pypi packages don't include everything required for the tests
   src = fetchFromGitHub {
-    owner = "arteria";
+    owner = "django-hijack";
     repo = "django-hijack";
-    rev = "v${version}";
-    sha256 = "01fwkjdzvw0yx2spwi7zc1yy64ndq1y72bfmk7kxnq5x803m2ak6";
+    tag = version;
+    hash = "sha256-3P7SCKS+ThBRNfXpN17N1y5vhYYWRL2JGVBOUHRdhK8=";
   };
 
-  checkInputs = [ django_nose ];
-  propagatedBuildInputs = [ django django_compat ];
+  build-system = [
+    flit-gettext
+    flit-scm
+  ];
 
-  checkPhase = ''
-    runHook preCheck
+  dependencies = [ django ];
 
-    # we have to do a little bit of tinkering to convince the tests to run against the installed package, not the
-    # source directory
-    mkdir testbase
-    pushd testbase
-    mv ../runtests.py .
-    ${python.interpreter} runtests.py hijack
-    popd
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+    pytest-django
+  ];
 
-    runHook postCheck
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE=tests.test_app.settings
   '';
+
+  # needed for npmDeps update
+  passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
     description = "Allows superusers to hijack (=login as) and work on behalf of another user";
-    homepage = "https://github.com/arteria/django-hijack";
+    homepage = "https://github.com/django-hijack/django-hijack";
+    changelog = "https://github.com/django-hijack/django-hijack/releases/tag/${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ ris ];
   };

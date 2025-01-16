@@ -1,40 +1,42 @@
-{ mkDerivation
-, async
-, base
-, bytestring
-, connection
-, containers
-, directory
-, hpack
-, hspec
-, hspec-discover
-, hspec-expectations
-, http-client
-, http-conduit
-, lens
-, lens-aeson
-, megaparsec
-, mtl
-, optparse-applicative
-, parser-combinators
-, retry
-, lib
-, text
-, unix
-, unordered-containers
-, utf8-string
-, fetchFromGitHub
-, dotenv
+{
+  mkDerivation,
+  async,
+  base,
+  bytestring,
+  connection,
+  containers,
+  directory,
+  hpack,
+  hspec,
+  hspec-discover,
+  hspec-expectations,
+  http-client,
+  http-conduit,
+  lens,
+  lens-aeson,
+  megaparsec,
+  mtl,
+  optparse-applicative,
+  parser-combinators,
+  retry,
+  lib,
+  quickcheck-instances,
+  text,
+  unix,
+  unordered-containers,
+  utf8-string,
+  fetchFromGitHub,
+  dotenv,
 }:
 mkDerivation rec {
   pname = "vaultenv";
-  version = "0.13.3";
+  version = "0.16.0";
 
   src = fetchFromGitHub {
     owner = "channable";
     repo = "vaultenv";
     rev = "v${version}";
-    sha256 = "sha256-17tdlqG8z4GviI7kkLbktC6SqnQFDdZhWtejscG0n48=";
+    sha256 = "sha256-EPu4unzXIg8naFUEZwbJ2VJXD/TeCiKzPHCXnRkdyBE=";
   };
 
   buildTools = [ hpack ];
@@ -86,6 +88,7 @@ mkDerivation rec {
     optparse-applicative
     parser-combinators
     retry
+    quickcheck-instances
     text
     unix
     unordered-containers
@@ -95,5 +98,8 @@ mkDerivation rec {
   homepage = "https://github.com/channable/vaultenv#readme";
   description = "Runs processes with secrets from HashiCorp Vault";
   license = lib.licenses.bsd3;
-  maintainers = with lib.maintainers; [ lnl7 manveru ];
+  maintainers = with lib.maintainers; [
+    lnl7
+    manveru
+  ];
 }

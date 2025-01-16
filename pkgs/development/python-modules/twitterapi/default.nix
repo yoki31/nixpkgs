@@ -1,14 +1,15 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, requests
-, requests_oauthlib
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  requests,
+  requests-oauthlib,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "twitterapi";
-  version = "2.7.11";
+  version = "2.8.2";
   format = "setuptools";
 
   disabled = pythonOlder "3.7";
@@ -16,25 +17,24 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "geduldig";
     repo = "TwitterAPI";
-    rev = "v${version}";
-    sha256 = "sha256-Rxc0ld0U8fhE3yJV+rgGsOfOdN6xGk0NQuHscpvergs=";
+    tag = "v${version}";
+    hash = "sha256-4Z8XfgRhQXawCvaXM+kyMO3fejvXIF2LgVdmfXDDqIA=";
   };
 
   propagatedBuildInputs = [
     requests
-    requests_oauthlib
+    requests-oauthlib
   ];
 
   # Tests are interacting with the Twitter API
   doCheck = false;
 
-  pythonImportsCheck = [
-    "TwitterAPI"
-  ];
+  pythonImportsCheck = [ "TwitterAPI" ];
 
   meta = with lib; {
     description = "Python wrapper for Twitter's REST and Streaming APIs";
     homepage = "https://github.com/geduldig/TwitterAPI";
+    changelog = "https://github.com/geduldig/TwitterAPI/blob/v${version}/CHANGE.log";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ fab ];
   };

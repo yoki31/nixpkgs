@@ -1,17 +1,33 @@
-{ lib, fetchPypi, buildPythonPackage
-, importlib-metadata, importlib-resources, six, traits
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  importlib-metadata,
+  importlib-resources,
+  setuptools,
+  traits,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "pyface";
-  version = "7.4.0";
+  version = "8.0.0";
+  format = "pyproject";
+
+  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-r8Awj9dOYPWxh1Ar2JK/nhuY8hAGFO4+6yr9yq7Pb6s=";
+    hash = "sha256-fhNhg0e3pkjtIM29T9GlFkj1AQKR815OD/G/cKcgy/g=";
   };
 
-  propagatedBuildInputs = [ importlib-metadata importlib-resources six traits ];
+  nativeBuildInputs = [ setuptools ];
+
+  propagatedBuildInputs = [
+    importlib-metadata
+    importlib-resources
+    traits
+  ];
 
   doCheck = false; # Needs X server
 
@@ -20,7 +36,8 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Traits-capable windowing framework";
     homepage = "https://github.com/enthought/pyface";
-    maintainers = with maintainers; [ knedlsepp ];
+    changelog = "https://github.com/enthought/pyface/releases/tag/${version}";
+    maintainers = with maintainers; [ ];
     license = licenses.bsdOriginal;
   };
 }

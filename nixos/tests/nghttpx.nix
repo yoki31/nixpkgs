@@ -1,8 +1,10 @@
 let
   nginxRoot = "/run/nginx";
 in
-  import ./make-test-python.nix ({...}: {
-    name  = "nghttpx";
+import ./make-test-python.nix (
+  { ... }:
+  {
+    name = "nghttpx";
     nodes = {
       webserver = {
         networking.firewall.allowedTCPPorts = [ 80 ];
@@ -26,7 +28,8 @@ in
         services.nghttpx = {
           enable = true;
           frontends = [
-            { server = {
+            {
+              server = {
                 host = "*";
                 port = 80;
               };
@@ -37,7 +40,8 @@ in
             }
           ];
           backends = [
-            { server = {
+            {
+              server = {
                 host = "webserver";
                 port = 80;
               };
@@ -48,14 +52,15 @@ in
         };
       };
 
-      client = {};
+      client = { };
     };
 
     testScript = ''
       start_all()
 
-      webserver.wait_for_open_port("80")
-      proxy.wait_for_open_port("80")
+      webserver.wait_for_open_port(80)
+      proxy.wait_for_open_port(80)
       client.wait_until_succeeds("curl -s --fail http://proxy/hello-world.txt")
     '';
-  })
+  }
+)

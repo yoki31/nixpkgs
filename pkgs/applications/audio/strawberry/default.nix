@@ -1,96 +1,116 @@
-{ mkDerivation
-, stdenv
-, lib
-, fetchFromGitHub
-, cmake
-, pkg-config
-, alsa-lib
-, boost
-, chromaprint
-, fftw
-, gnutls
-, libcdio
-, libmtp
-, libpthreadstubs
-, libtasn1
-, libXdmcp
-, ninja
-, pcre
-, protobuf
-, sqlite
-, taglib
-, libpulseaudio
-, libselinux
-, libsepol
-, p11-kit
-, util-linux
-, qtbase
-, qtx11extras
-, qttools
-, withGstreamer ? true
-, glib-networking
-, gst_all_1
-, withVlc ? true
-, libvlc
+{
+  alsa-lib,
+  boost,
+  chromaprint,
+  cmake,
+  fetchFromGitHub,
+  fftw,
+  glib-networking,
+  gnutls,
+  gst_all_1,
+  kdsingleapplication,
+  lib,
+  libXdmcp,
+  libcdio,
+  libebur128,
+  libgpod,
+  libidn2,
+  libmtp,
+  libpthreadstubs,
+  libpulseaudio,
+  libselinux,
+  libsepol,
+  libtasn1,
+  ninja,
+  nix-update-script,
+  p11-kit,
+  pkg-config,
+  qtbase,
+  qttools,
+  sqlite,
+  stdenv,
+  taglib,
+  util-linux,
+  wrapQtAppsHook,
 }:
 
-mkDerivation rec {
+let
+  inherit (lib) optionals;
+
+in
+stdenv.mkDerivation rec {
   pname = "strawberry";
-  version = "1.0.1";
+  version = "1.2.4";
 
   src = fetchFromGitHub {
     owner = "jonaski";
     repo = pname;
     rev = version;
-    sha256 = "sha256-MlS1ShRXfsTMs97MeExW6sfpv40OcQLDIzIzOYGk7Rw=";
+    hash = "sha256-acTFJS8E0hQNbiiOi8DfPyTiUcKjXwg5trk3Q2mYYmQ=";
   };
 
-  buildInputs = [
-    alsa-lib
-    boost
-    chromaprint
-    fftw
-    gnutls
-    libcdio
-    libmtp
-    libpthreadstubs
-    libtasn1
-    libXdmcp
-    pcre
-    protobuf
-    sqlite
-    taglib
-    qtbase
-    qtx11extras
-  ] ++ lib.optionals stdenv.isLinux [
-    libpulseaudio
-    libselinux
-    libsepol
-    p11-kit
-  ] ++ lib.optionals withGstreamer (with gst_all_1; [
-    glib-networking
-    gstreamer
-    gst-plugins-base
-    gst-plugins-good
-    gst-plugins-bad
-    gst-plugins-ugly
-  ]) ++ lib.optional withVlc libvlc;
+  # the big strawberry shown in the context menu is *very* much in your face, so use the grey version instead
+  postPatch = ''
+    substituteInPlace src/context/contextalbum.cpp \
+      --replace pictures/strawberry.png pictures/strawberry-grey.png
+  '';
 
-  nativeBuildInputs = [
-    cmake
-    ninja
-    pkg-config
-    qttools
-  ] ++ lib.optionals stdenv.isLinux [
-    util-linux
-  ];
+  buildInputs =
+    [
+      alsa-lib
+      boost
+      chromaprint
+      fftw
+      gnutls
+      kdsingleapplication
+      libXdmcp
+      libcdio
+      libebur128
+      libidn2
+      libmtp
+      libpthreadstubs
+      libtasn1
+      qtbase
+      sqlite
+      taglib
+    ]
+    ++ optionals stdenv.hostPlatform.isLinux [
+      libgpod
+      libpulseaudio
+      libselinux
+      libsepol
+      p11-kit
+    ]
+    ++ (with gst_all_1; [
+      glib-networking
+      gst-libav
+      gst-plugins-bad
+      gst-plugins-base
+      gst-plugins-good
+      gst-plugins-ugly
+      gstreamer
+    ]);
 
-  postInstall = lib.optionalString withGstreamer ''
+  nativeBuildInputs =
+    [
+      cmake
+      ninja
+      pkg-config
+      qttools
+      wrapQtAppsHook
+    ]
+    ++ optionals stdenv.hostPlatform.isLinux [
+      util-linux
+    ];
+
+  postInstall = ''
     qtWrapperArgs+=(
       --prefix GST_PLUGIN_SYSTEM_PATH_1_0 : "$GST_PLUGIN_SYSTEM_PATH_1_0"
       --prefix GIO_EXTRA_MODULES : "${glib-networking.out}/lib/gio/modules"
     )
   '';
+
+  passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
     description = "Music player and music collection organizer";
@@ -100,5 +120,6 @@ mkDerivation rec {
     maintainers = with maintainers; [ peterhoeg ];
     # upstream says darwin should work but they lack maintainers as of 0.6.6
     platforms = platforms.linux;
+    mainProgram = "strawberry";
   };
 }

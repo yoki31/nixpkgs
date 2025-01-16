@@ -1,45 +1,70 @@
-{ lib
-, buildPythonPackage
-, convertdate
-, python-dateutil
-, fetchPypi
-, hijri-converter
-, korean-lunar-calendar
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  chameleon,
+  fetchFromGitHub,
+  importlib-metadata,
+  lingva,
+  polib,
+  pytestCheckHook,
+  python-dateutil,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "holidays";
-  version = "0.12";
-  format = "setuptools";
+  version = "0.64";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "d99f2b6ddc5bfab7b7f8bbed457a82104f8980122a04b982bfc0e4f8820a1d46";
+  src = fetchFromGitHub {
+    owner = "vacanza";
+    repo = "python-holidays";
+    tag = "v${version}";
+    hash = "sha256-rPQr7nyouBepTi4tW0+wrbROYyWo92KkZUI6ff5jl7I=";
   };
 
-  propagatedBuildInputs = [
-    convertdate
-    python-dateutil
-    hijri-converter
-    korean-lunar-calendar
+  build-system = [
+    setuptools
+
+    # l10n
+    lingva
+    chameleon
+    polib
   ];
 
-  checkInputs = [
+  postPatch = ''
+    patchShebangs scripts/l10n/*.py
+  '';
+
+  preBuild = ''
+    # make l10n
+    ./scripts/l10n/generate_po_files.py
+    ./scripts/l10n/generate_mo_files.py
+  '';
+
+  dependencies = [ python-dateutil ];
+
+  doCheck = false;
+
+  nativeCheckInputs = [
+    importlib-metadata
+    polib
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "holidays"
-  ];
+  pythonImportsCheck = [ "holidays" ];
 
   meta = with lib; {
     description = "Generate and work with holidays in Python";
-    homepage = "https://github.com/dr-prodigy/python-holidays";
+    homepage = "https://github.com/vacanza/python-holidays";
+    changelog = "https://github.com/vacanza/python-holidays/releases/tag/v${version}";
     license = licenses.mit;
-    maintainers = with maintainers; [ jluttine ];
+    maintainers = with maintainers; [
+      fab
+      jluttine
+    ];
   };
 }

@@ -1,47 +1,76 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, trio
-, outcome
-, sniffio
-, pytest-trio
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  greenlet,
+  trio,
+  outcome,
+  sniffio,
+  exceptiongroup,
+  pytest-trio,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "trio-asyncio";
-  version = "0.12.0";
+  version = "0.15.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    pname = "trio_asyncio";
-    inherit version;
-    sha256 = "824be23b0c678c0df942816cdb57b92a8b94f264fffa89f04626b0ba2d009768";
+  disabled = pythonOlder "3.8";
+
+  src = fetchFromGitHub {
+    owner = "python-trio";
+    repo = "trio-asyncio";
+    tag = "v${version}";
+    hash = "sha256-6c+4sGEpCVC8wxBg+dYgkOwRAUOi/DTITrDx3M2koyE=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "'pytest-runner'" ""
+      --replace-fail '"pytest-runner"' ""
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
+    greenlet
     trio
     outcome
     sniffio
+  ] ++ lib.optionals (pythonOlder "3.11") [ exceptiongroup ];
+
+  pytestFlagsArray = [
+    # RuntimeWarning: Can't run the Python asyncio tests because they're not installed
+    "-W"
+    "ignore::RuntimeWarning"
+    "-W"
+    "ignore::DeprecationWarning"
   ];
 
-  checkInputs = [
+  disabledTests = [
+    # TypeError: RaisesGroup.__init__() got an unexpected keyword argument 'strict'
+    # https://github.com/python-trio/trio-asyncio/issues/154
+    "test_run_trio_task_errors"
+    "test_cancel_loop_with_tasks"
+  ];
+
+  nativeCheckInputs = [
     pytest-trio
     pytestCheckHook
   ];
 
-  disabledTestPaths = [
-    "tests/python" # tries to import internal API test.test_asyncio
-  ];
+  pythonImportsCheck = [ "trio_asyncio" ];
 
   meta = with lib; {
+    changelog = "https://github.com/python-trio/trio-asyncio/blob/v${version}/docs/source/history.rst";
     description = "Re-implementation of the asyncio mainloop on top of Trio";
     homepage = "https://github.com/python-trio/trio-asyncio";
-    license = with licenses; [ asl20 /* or */ mit ];
+    license = with licenses; [
+      asl20 # or
+      mit
+    ];
     maintainers = with maintainers; [ dotlambda ];
   };
 }

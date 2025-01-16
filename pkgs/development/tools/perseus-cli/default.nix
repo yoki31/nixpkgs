@@ -1,15 +1,21 @@
-{ lib, rustPlatform, fetchCrate, makeWrapper, wasm-pack }:
+{
+  lib,
+  rustPlatform,
+  fetchCrate,
+  makeWrapper,
+  wasm-pack,
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "perseus-cli";
-  version = "0.3.0";
+  version = "0.3.1";
 
   src = fetchCrate {
     inherit pname version;
-    sha256 = "sha256-YyQQjuxNUxuo2PFluGyT/CpG22tgjRCfmFKA5MFRgHo=";
+    hash = "sha256-IYjLx9/4oWSXa4jhOtGw1GOHmrR7LQ6bWyN5zbOuEFs=";
   };
 
-  cargoSha256 = "sha256-SKxPsltXFH+ENexn/KDD43hGLSTgvtU9hv9Vdi2oeFA=";
+  cargoHash = "sha256-i7MPmO9MoANZLzmR5gsD+v0gyDtFbzhsmE9xOsb88L0=";
 
   nativeBuildInputs = [ makeWrapper ];
 
@@ -20,7 +26,7 @@ rustPlatform.buildRustPackage rec {
 
   meta = with lib; {
     homepage = "https://arctic-hen7.github.io/perseus";
-    description = "A high-level web development framework for Rust with full support for server-side rendering and static generation";
+    description = "High-level web development framework for Rust with full support for server-side rendering and static generation";
     maintainers = with maintainers; [ max-niederman ];
     license = with licenses; [ mit ];
     mainProgram = "perseus";

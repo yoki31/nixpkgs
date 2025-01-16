@@ -1,48 +1,62 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, isPy27
-, pyutilib
-, appdirs
-, ply
-, six
-, nose
-, glpk
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  parameterized,
+  ply,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pyomo";
-  version = "5.7.3";
-  disabled = isPy27; # unable to import pyutilib.th
+  version = "6.8.2";
+  pyproject = true;
+
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     repo = "pyomo";
     owner = "pyomo";
-    rev = version;
-    sha256 = "sha256-p0/DdCwyXdzXElzjWewKs0Oi7BMXC+BxgYikdZL0t68=";
+    tag = version;
+    hash = "sha256-n/Nt9omZfYSK/dvfp82aGfWIAAxF2mXYCJ1QcR6j8Ic=";
   };
 
-  checkInputs = [ nose glpk ];
-  propagatedBuildInputs = [
-    pyutilib
-    appdirs
-    ply
-    six
+  build-system = [ setuptools ];
+
+  dependencies = [ ply ];
+
+  nativeCheckInputs = [
+    parameterized
+    pytestCheckHook
   ];
 
-  checkPhase = ''
-    rm pyomo/bilevel/tests/test_blp.py \
-       pyomo/version/tests/test_installer.py \
-       pyomo/common/tests/test_download.py \
-       pyomo/core/tests/examples/test_pyomo.py
-    export HOME=$TMPDIR
-    nosetests
+  pythonImportsCheck = [ "pyomo" ];
+
+  preCheck = ''
+    export HOME=$(mktemp -d);
   '';
 
+  disabledTestPaths = [
+    # Don't test the documentation and the examples
+    "doc/"
+    "examples/"
+    # Tests don't work properly in the sandbox
+    "pyomo/environ/tests/test_environ.py"
+  ];
+
+  disabledTests = [
+    # Test requires lsb_release
+    "test_get_os_version"
+  ];
+
   meta = with lib; {
-    description = "Pyomo: Python Optimization Modeling Objects";
-    homepage = "http://pyomo.org";
+    description = "Python Optimization Modeling Objects";
+    homepage = "http://www.pyomo.org/";
+    changelog = "https://github.com/Pyomo/pyomo/releases/tag/${version}";
     license = licenses.bsd3;
-    maintainers = [ maintainers.costrouc ];
+    maintainers = [ ];
+    mainProgram = "pyomo";
   };
 }

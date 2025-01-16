@@ -1,44 +1,50 @@
-{ stdenv, config, callPackage, wineBuild }:
+{
+  stdenv,
+  config,
+  callPackage,
+  wineBuild,
+}:
 
 rec {
-  fonts = callPackage ../misc/emulators/wine/fonts.nix {};
-  minimal = callPackage ../misc/emulators/wine {
+  fonts = callPackage ../applications/emulators/wine/fonts.nix { };
+  minimal = callPackage ../applications/emulators/wine {
     wineRelease = config.wine.release or "stable";
     inherit wineBuild;
   };
 
   base = minimal.override {
     gettextSupport = true;
-    fontconfigSupport = true;
-    alsaSupport = true;
+    fontconfigSupport = stdenv.hostPlatform.isLinux;
+    alsaSupport = stdenv.hostPlatform.isLinux;
     openglSupport = true;
-    vulkanSupport = stdenv.isLinux;
+    vulkanSupport = true;
     tlsSupport = true;
     cupsSupport = true;
-    dbusSupport = true;
-    cairoSupport = true;
+    dbusSupport = stdenv.hostPlatform.isLinux;
+    cairoSupport = stdenv.hostPlatform.isLinux;
     cursesSupport = true;
-    saneSupport = true;
-    pulseaudioSupport = config.pulseaudio or stdenv.isLinux;
-    udevSupport = true;
-    xineramaSupport = true;
+    saneSupport = stdenv.hostPlatform.isLinux;
+    pulseaudioSupport = config.pulseaudio or stdenv.hostPlatform.isLinux;
+    udevSupport = stdenv.hostPlatform.isLinux;
+    xineramaSupport = stdenv.hostPlatform.isLinux;
     sdlSupport = true;
     mingwSupport = true;
+    usbSupport = true;
+    waylandSupport = stdenv.hostPlatform.isLinux;
+    x11Support = stdenv.hostPlatform.isLinux;
   };
 
   full = base.override {
-    gtkSupport = true;
+    gtkSupport = stdenv.hostPlatform.isLinux;
     gstreamerSupport = true;
-    openalSupport = true;
     openclSupport = true;
     odbcSupport = true;
-    netapiSupport = true;
-    vaSupport = true;
+    netapiSupport = stdenv.hostPlatform.isLinux;
+    vaSupport = stdenv.hostPlatform.isLinux;
     pcapSupport = true;
-    v4lSupport = true;
+    v4lSupport = stdenv.hostPlatform.isLinux;
     gphoto2Support = true;
-    ldapSupport = true;
-    vkd3dSupport = true;
+    krb5Support = true;
     embedInstallers = true;
   };
 
@@ -51,6 +57,12 @@ rec {
   staging = base.override { wineRelease = "staging"; };
   stagingFull = full.override { wineRelease = "staging"; };
 
-  wayland = base.override { wineRelease = "wayland"; };
-  waylandFull = full.override { wineRelease = "wayland"; };
+  wayland = base.override {
+    wineRelease = "wayland";
+    waylandSupport = true;
+  };
+  waylandFull = full.override {
+    wineRelease = "wayland";
+    waylandSupport = true;
+  };
 }

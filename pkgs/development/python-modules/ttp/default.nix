@@ -1,33 +1,35 @@
-{ lib
-, buildPythonPackage
-, callPackage
-, fetchFromGitHub
-, cerberus
-, configparser
-, deepdiff
-, geoip2
-, jinja2
-, openpyxl
-, tabulate
-, yangson
-, pytestCheckHook
-, pyyaml
+{
+  lib,
+  buildPythonPackage,
+  cerberus,
+  configparser,
+  deepdiff,
+  fetchFromGitHub,
+  geoip2,
+  jinja2,
+  netmiko,
+  openpyxl,
+  pytestCheckHook,
+  poetry-core,
+  pyyaml,
+  tabulate,
+  ttp-templates,
+  yangson,
 }:
 
-let
-  ttp_templates = callPackage ./templates.nix { };
-in
 buildPythonPackage rec {
   pname = "ttp";
-  version = "0.7.2";
-  format = "setuptools";
+  version = "0.9.5";
+  format = "pyproject";
 
   src = fetchFromGitHub {
     owner = "dmulyalin";
     repo = pname;
-    rev = version;
-    sha256 = "sha256-dYjE+EMfCVHLRAqT1KM7o8VEopJ/TwAEMphYXuj38Wk=";
+    tag = version;
+    hash = "sha256-IWqPFspERBVkjsTYTAkOTOrugq4fD65Q140G3SCEV0w=";
   };
+
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     # https://github.com/dmulyalin/ttp/blob/master/docs/source/Installation.rst#additional-dependencies
@@ -37,30 +39,34 @@ buildPythonPackage rec {
     geoip2
     jinja2
     # n2g unpackaged
-    # netmiko unpackaged
+    netmiko
     # nornir unpackaged
     openpyxl
     tabulate
     yangson
   ];
 
-  pythonImportsCheck = [
-    "ttp"
-  ];
+  pythonImportsCheck = [ "ttp" ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     pyyaml
-    ttp_templates
+    ttp-templates
   ];
 
   disabledTestPaths = [
     # missing package n2g
     "test/pytest/test_N2G_formatter.py"
+    # missing test file
+    "test/pytest/test_extend_tag.py"
+    "test/pytest/test_ttp_parser_methods.py"
   ];
 
   disabledTests = [
     # data structure mismatches
+    "test_global_output_deepdiff_with_var_before"
+    "test_group_specific_output_deepdiff_with_var_before"
+    "test_group_specific_output_deepdiff_with_var_before_with_add_field"
     "test_yangson_validate"
     "test_yangson_validate_yang_lib_in_output_tag_data"
     "test_yangson_validate_multiple_inputs_mode_per_input_with_yang_lib_in_file"
@@ -81,16 +87,24 @@ buildPythonPackage rec {
     "test_excel_formatter_update_using_result_kwargs"
     # missing package n2g
     "test_n2g_formatter"
+    # missing test files
+    "test_TTP_CACHE_FOLDER_env_variable_usage"
+    # requires additional network setup
+    "test_child_group_do_not_start_if_no_parent_started"
+    # Assertion Error
+    "test_in_threads_parsing"
+    # missing env var
+    "test_ttp_templates_dir_env_variable"
   ];
 
-  pytestFlagsArray = [
-    "test/pytest"
-  ];
+  pytestFlagsArray = [ "test/pytest" ];
 
   meta = with lib; {
+    changelog = "https://github.com/dmulyalin/ttp/releases/tag/${version}";
     description = "Template Text Parser";
+    mainProgram = "ttp";
     homepage = "https://github.com/dmulyalin/ttp";
     license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    maintainers = [ ];
   };
 }

@@ -1,35 +1,37 @@
-{ lib
-, buildPythonPackage
-, factory_boy
-, faker
-, fetchFromGitHub
-, importlib-metadata
-, numpy
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  factory-boy,
+  faker,
+  fetchFromGitHub,
+  importlib-metadata,
+  numpy,
+  pytest-xdist,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-randomly";
-  version = "3.10.3";
-  format = "setuptools";
+  version = "3.13.0";
+  format = "pyproject";
 
-  disabled = pythonOlder "3.6";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     repo = pname;
     owner = "pytest-dev";
     rev = version;
-    sha256 = "sha256-NoYpMpFWz52Z0+KIUumUFp3xMPA1jGw8COojU+bsgHc=";
+    hash = "sha256-bxbW22Nf/0hfJYSiz3xdrNCzrb7vZwuVvSIrWl0Bkv4=";
   };
 
-  propagatedBuildInputs = lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  checkInputs = [
-    factory_boy
+  propagatedBuildInputs = lib.optionals (pythonOlder "3.10") [ importlib-metadata ];
+
+  nativeCheckInputs = [
+    factory-boy
     faker
     numpy
     pytest-xdist
@@ -42,14 +44,13 @@ buildPythonPackage rec {
     "no:randomly"
   ];
 
-  pythonImportsCheck = [
-    "pytest_randomly"
-  ];
+  pythonImportsCheck = [ "pytest_randomly" ];
 
   meta = with lib; {
+    changelog = "https://github.com/pytest-dev/pytest-randomly/blob/${version}/CHANGELOG.rst";
     description = "Pytest plugin to randomly order tests and control random.seed";
     homepage = "https://github.com/pytest-dev/pytest-randomly";
-    license = licenses.bsd3;
+    license = licenses.mit;
     maintainers = with maintainers; [ sternenseemann ];
   };
 }

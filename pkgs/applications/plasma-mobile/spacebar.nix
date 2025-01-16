@@ -1,44 +1,58 @@
-{ lib
-, mkDerivation
+{
+  lib,
+  mkDerivation,
 
-, cmake
-, extra-cmake-modules
+  cmake,
+  extra-cmake-modules,
+  wrapQtAppsHook,
 
-, kcontacts
-, ki18n
-, kirigami2
-, knotifications
-, kpeople
-, libphonenumber
-, libqofono
-, protobuf
-, telepathy
+  c-ares,
+  curl,
+  kcontacts,
+  ki18n,
+  kio,
+  kirigami-addons,
+  kirigami2,
+  knotifications,
+  kpeople,
+  libphonenumber,
+  modemmanager-qt,
+  protobuf,
+  qcoro,
+  qtquickcontrols2,
 }:
 
-mkDerivation rec {
+mkDerivation {
   pname = "spacebar";
 
   nativeBuildInputs = [
     cmake
     extra-cmake-modules
+    wrapQtAppsHook
   ];
 
   buildInputs = [
+    c-ares
+    curl
     kcontacts
     ki18n
+    kio
+    kirigami-addons
     kirigami2
     knotifications
     kpeople
     libphonenumber
-    libqofono
+    modemmanager-qt
     protobuf # Needed by libphonenumber
-    telepathy
+    qcoro
+    qtquickcontrols2
   ];
 
   meta = with lib; {
     description = "SMS application for Plasma Mobile";
+    mainProgram = "spacebar";
     homepage = "https://invent.kde.org/plasma-mobile/spacebar";
     license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ samueldr ];
+    maintainers = [ ];
   };
 }
